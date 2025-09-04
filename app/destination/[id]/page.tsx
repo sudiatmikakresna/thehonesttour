@@ -15,7 +15,7 @@ const destinations = [
     name: "The Ritz-Carlton, Bali",
     location: "Nusa Dua, Bali",
     rating: 4.8,
-    reviews: 2847,
+    reviewCount: 2847,
     price: 450,
     images: [
       "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop",
@@ -158,7 +158,7 @@ const destinations = [
     name: "Tanah Lot Temple",
     location: "Tabanan, Bali",
     rating: 4.6,
-    reviews: 5432,
+    reviewCount: 5432,
     price: 15,
     images: [
       "https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=800&h=600&fit=crop",
@@ -238,7 +238,7 @@ const destinations = [
     name: "Ubud Monkey Forest Sanctuary",
     location: "Ubud, Bali",
     rating: 4.3,
-    reviews: 3921,
+    reviewCount: 3921,
     price: 8,
     images: [
       "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop",
@@ -318,7 +318,7 @@ const destinations = [
     name: "Kuta Beach",
     location: "Kuta, Bali",
     rating: 4.2,
-    reviews: 8765,
+    reviewCount: 8765,
     price: 0,
     images: [
       "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop",
@@ -399,7 +399,7 @@ const destinations = [
     name: "Tegallalang Rice Terraces",
     location: "Ubud, Bali",
     rating: 4.7,
-    reviews: 2156,
+    reviewCount: 2156,
     price: 10,
     images: [
       "https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?w=800&h=600&fit=crop",
@@ -480,7 +480,7 @@ const destinations = [
     name: "Four Seasons Resort Bali at Sayan",
     location: "Ubud, Bali",
     rating: 4.9,
-    reviews: 1432,
+    reviewCount: 1432,
     price: 650,
     images: [
       "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop",
@@ -608,11 +608,12 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
   };
 
   const navigateGallery = (direction: 'prev' | 'next') => {
+    if (!destination) return;
     const maxIndex = destination.images.length - 1;
     setGalleryState(prev => ({
       ...prev,
       currentImageIndex: direction === 'next' 
-        ? (prev.currentImageIndex + 1) % destination.images.length
+        ? (prev.currentImageIndex + 1) % (destination?.images.length || 1)
         : prev.currentImageIndex === 0 ? maxIndex : prev.currentImageIndex - 1
     }));
   };
@@ -646,7 +647,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [galleryState.isOpen]);
+  }, [galleryState.isOpen, navigateGallery, closeGallery]);
   
   if (!destination) {
     return <div>Destination not found</div>;
@@ -702,7 +703,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
                 <div className="flex items-center gap-1">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                   <span className="font-semibold">{destination.rating}</span>
-                  <span>({destination.reviews.toLocaleString()} reviews)</span>
+                  <span>({destination.reviewCount.toLocaleString()} reviews)</span>
                 </div>
                 <Badge className="bg-green-600 hover:bg-green-700">
                   {destination.category}
@@ -935,7 +936,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    {destination.rating} · {destination.reviews.toLocaleString()} reviews
+                    {destination.rating} · {destination.reviewCount.toLocaleString()} reviews
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm">View all reviews</Button>
@@ -1018,7 +1019,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
                   Reserve Now
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  You won't be charged yet
+                  You won&apos;t be charged yet
                 </p>
                 <Separator />
                 <div className="space-y-2 text-sm">
