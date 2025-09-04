@@ -241,10 +241,10 @@ const destinations = [
     reviews: 3921,
     price: 8,
     images: [
-      "https://images.unsplash.com/photo-1582662167791-74d9b17e7210?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1583427053169-ce3f5e6b3a7b?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1577717903315-1691ae25ab3f?w=800&h=600&fit=crop"
+      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop"
     ],
     category: "Nature Reserve",
     description: "Sacred sanctuary home to hundreds of long-tailed macaques in their natural habitat.",

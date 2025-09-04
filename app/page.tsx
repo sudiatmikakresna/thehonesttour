@@ -41,7 +41,7 @@ const destinations = [
     rating: 4.3,
     reviews: 3921,
     price: 8,
-    image: "https://images.unsplash.com/photo-1582662167791-74d9b17e7210?w=400&h=300&fit=crop",
+    image: "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=400&h=300&fit=crop",
     category: "Nature Reserve",
     description: "Sacred sanctuary home to hundreds of long-tailed macaques in their natural habitat.",
     amenities: ["Guided Tours", "Walking Trails", "Gift Shop", "Educational Center"]
@@ -106,13 +106,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-green-600">TravelGuide</h1>
-            <nav className="hidden md:flex space-x-6">
-              <a href="#" className="text-foreground/60 hover:text-foreground">Hotels</a>
-              <a href="#" className="text-foreground/60 hover:text-foreground">Restaurants</a>
-              <a href="#" className="text-foreground/60 hover:text-foreground">Things to do</a>
-              <a href="#" className="text-foreground/60 hover:text-foreground">Flights</a>
-            </nav>
+            <h1 className="text-2xl font-bold text-green-600">TheHonestTour</h1>
           </div>
         </div>
       </header>
