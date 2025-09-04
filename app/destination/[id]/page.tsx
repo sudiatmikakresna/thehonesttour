@@ -663,26 +663,28 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 shadow-sm">
+      <header className="border-b border-gray-200 bg-white/90 md:bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:md:bg-white/60 shadow-sm md:shadow-md">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
               <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to search
+                <Button variant="ghost" size="sm" className="p-2 md:px-3">
+                  <ArrowLeft className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Back to search</span>
                 </Button>
               </Link>
-              <h1 className="text-2xl font-bold text-green-600">The honest Tour</h1>
+              <h1 className="text-lg md:text-2xl font-bold text-green-600 truncate">
+                The honest Tour
+              </h1>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Heart className="w-4 h-4 mr-2" />
-                Save
+            <div className="flex gap-1 md:gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" className="p-2 md:px-3">
+                <Heart className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Save</span>
               </Button>
-              <Button variant="outline" size="sm">
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
+              <Button variant="outline" size="sm" className="p-2 md:px-3">
+                <Share2 className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Share</span>
               </Button>
             </div>
           </div>
@@ -691,28 +693,33 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
 
       <main>
         {/* Title Section */}
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{destination.name}</h1>
-              <div className="flex items-center gap-4 text-muted-foreground">
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2 leading-tight">{destination.name}</h1>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-muted-foreground">
                 <div className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {destination.location}
+                  <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                  <span className="text-sm md:text-base">{destination.location}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-semibold">{destination.rating}</span>
-                  <span>({destination.reviewCount.toLocaleString()} reviews)</span>
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                  <span className="font-semibold text-sm md:text-base">{destination.rating}</span>
+                  <span className="text-sm md:text-base">({destination.reviewCount.toLocaleString()} reviews)</span>
                 </div>
-                <Badge className="bg-green-600 hover:bg-green-700">
+                <Badge className="bg-green-600 hover:bg-green-700 self-start">
                   {destination.category}
                 </Badge>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold">${destination.price}</div>
-              <div className="text-sm text-muted-foreground">per night</div>
+            <div className="text-left md:text-right flex-shrink-0">
+              <div className="text-2xl md:text-3xl font-bold">${destination.price}</div>
+              <div className="text-sm text-muted-foreground">
+                {destination.category.includes('Hotel') || destination.category.includes('Resort') 
+                  ? 'per night' 
+                  : destination.price === 0 ? 'Free admission' : 'per person'
+                }
+              </div>
             </div>
           </div>
         </div>
@@ -720,7 +727,73 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
         {/* Image Gallery Section */}
         <div className="w-full">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-4 gap-2" style={{ height: '400px' }}>
+            {/* Mobile Carousel */}
+            <div className="md:hidden">
+              <div className="relative h-64 rounded-lg overflow-hidden">
+                <div className="flex transition-transform duration-300 ease-in-out h-full"
+                     style={{ transform: `translateX(-${galleryState.currentImageIndex * 100}%)` }}>
+                  {destination.images.map((image, index) => (
+                    <div key={index} className="w-full h-full flex-shrink-0 relative">
+                      <Image
+                        src={image}
+                        alt={`${destination.name} - Image ${index + 1}`}
+                        width={800}
+                        height={600}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Navigation Arrows */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateGallery('prev')}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 w-8 h-8 rounded-full"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateGallery('next')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 w-8 h-8 rounded-full"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                
+                {/* Dots Indicator */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {destination.images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => selectImage(index)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        index === galleryState.currentImageIndex 
+                          ? 'bg-white w-6' 
+                          : 'bg-white/50 hover:bg-white/80'
+                      }`}
+                    />
+                  ))}
+                </div>
+                
+                {/* View All Photos Button */}
+                <div className="absolute top-4 right-4">
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => openGallery(galleryState.currentImageIndex)}
+                    className="bg-black/50 text-white hover:bg-black/70"
+                  >
+                    View all ({destination.images.length})
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Grid */}
+            <div className="hidden md:grid grid-cols-4 gap-2" style={{ height: '400px' }}>
               <div className="col-span-2 row-span-2 cursor-pointer overflow-hidden rounded-l-lg" onClick={() => openGallery(0)}>
                 <Image
                   src={destination.images[0]}
