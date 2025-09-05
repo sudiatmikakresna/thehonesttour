@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Filter, MapPin, Star, Heart, Share2, MessageCircle } from "lucide-react";
+import { Search, Filter, MapPin, Star, Heart, Share2, MessageCircle, Facebook, Twitter, Instagram, Youtube, Phone, Mail, Globe, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,6 +86,105 @@ const destinations = [
 ];
 
 export default function Home() {
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [user, setUser] = useState(null);
+
+  // Google OAuth configuration
+  const googleClientId = "647803137473-nu8tum4gjfg0cd8ankduhtsi53qisvp5.apps.googleusercontent.com";
+
+  useEffect(() => {
+    // Load Google OAuth script
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogle;
+    script.onerror = () => {
+      console.error('Failed to load Google OAuth script');
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
+  const initializeGoogle = () => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleLogin,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+      } catch (error) {
+        console.error('Failed to initialize Google OAuth:', error);
+      }
+    }
+  };
+
+  const handleGoogleLogin = (response) => {
+    try {
+      // Decode the JWT token to get user info
+      const token = response.credential;
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+
+      const userData = JSON.parse(jsonPayload);
+      setUser(userData);
+      setShowLoginModal(false);
+      console.log('User logged in:', userData);
+    } catch (error) {
+      console.error('Error processing login:', error);
+    }
+  };
+
+  const openLoginModal = () => {
+    setShowLoginModal(true);
+  };
+
+  const closeLoginModal = () => {
+    setShowLoginModal(false);
+  };
+
+  const handleGoogleSignIn = () => {
+    try {
+      if (window.google?.accounts?.id) {
+        // Try to use the prompt method
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            console.log('Google Sign-In prompt not displayed:', notification.getNotDisplayedReason());
+            // Fallback: Show manual sign-in option
+            showManualSignInFallback();
+          }
+        });
+      } else {
+        console.error('Google OAuth not loaded');
+        showManualSignInFallback();
+      }
+    } catch (error) {
+      console.error('Error with Google Sign-In:', error);
+      showManualSignInFallback();
+    }
+  };
+
+  const showManualSignInFallback = () => {
+    alert('Google Sign-In is currently unavailable. This might be due to:\n\n1. Running on localhost (Google OAuth requires HTTPS in production)\n2. Domain not configured in Google Cloud Console\n3. Browser blocking third-party cookies\n\nFor testing purposes, you can use a mock login or configure the domain in Google Cloud Console.');
+  };
+
+  const logout = () => {
+    setUser(null);
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 relative overflow-hidden">
       {/* Abstract Background Elements */}
@@ -107,6 +207,28 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-green-600">TheHonestTour</h1>
+            <div className="flex items-center gap-4">
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={user.picture} 
+                      alt={user.name}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <span className="hidden md:inline text-sm font-medium">{user.name}</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={logout} className="text-xs">
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={openLoginModal}>
+                  <User className="w-4 h-4" />
+                  <span className="hidden md:inline">Login</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -174,7 +296,7 @@ export default function Home() {
                 <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg">
                   Explore Tours
                 </Button>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-black px-8 py-3 text-lg">
+                <Button size="lg" variant="outline" className="border-green-400 text-green-400 hover:bg-green-400 hover:text-white px-8 py-3 text-lg">
                   Watch Video
                 </Button>
               </div>
@@ -361,6 +483,244 @@ export default function Home() {
           <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Company Info */}
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-green-400">TheHonestTour</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Discover amazing destinations around the world with our curated travel experiences. 
+                Your journey to unforgettable memories starts here.
+              </p>
+              <div className="flex space-x-4">
+                <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
+                  <Twitter className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
+                  <Instagram className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
+                  <Youtube className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">Quick Links</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    About Us
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    Destinations
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    Tours & Packages
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    Contact
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Services */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">Services</h4>
+              <ul className="space-y-2">
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    Hotel Booking
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    Flight Reservations
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    Tour Packages
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    Travel Insurance
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
+                    24/7 Support
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact Info */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">Contact Info</h4>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <span className="text-gray-300 text-sm">
+                    123 Travel Street, Adventure City, AC 12345
+                  </span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Phone className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <span className="text-gray-300 text-sm">+62 819-3437-4633</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Mail className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <span className="text-gray-300 text-sm">info@thehonesttour.com</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Globe className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <span className="text-gray-300 text-sm">www.thehonesttour.com</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Newsletter Signup */}
+          <div className="mt-12 pt-8 border-t border-gray-800">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-center md:text-left">
+                <h4 className="text-lg font-semibold mb-2">Stay Updated</h4>
+                <p className="text-gray-300 text-sm">
+                  Subscribe to our newsletter for the latest travel deals and destinations.
+                </p>
+              </div>
+              <div className="flex w-full md:w-auto gap-2">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 md:w-64 px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-green-400 focus:outline-none"
+                />
+                <Button className="bg-green-600 hover:bg-green-700 px-6">
+                  Subscribe
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-gray-400 text-sm">
+              © 2024 TheHonestTour. All rights reserved.
+            </p>
+            <div className="flex space-x-6 text-sm">
+              <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
+                Privacy Policy
+              </a>
+              <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
+                Terms of Service
+              </a>
+              <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
+                Cookie Policy
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative animate-in fade-in-0 zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              onClick={closeLoginModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Modal Content */}
+            <div className="text-center space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+                <p className="text-gray-600">Sign in to access your account and continue your journey</p>
+              </div>
+
+              {/* Google Sign In Button */}
+              <div className="space-y-4">
+                <div 
+                  id="google-signin-button"
+                  className="flex items-center justify-center"
+                >
+                  <button
+                    onClick={handleGoogleSignIn}
+                    className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 group"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    <span className="font-medium text-gray-700 group-hover:text-gray-900">Continue with Google</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">For development testing</span>
+                  </div>
+                </div>
+
+                {/* Mock Login for Development */}
+                <div className="space-y-4">
+                  <Button 
+                    onClick={() => {
+                      // Mock user data for development
+                      setUser({
+                        name: 'John Doe',
+                        email: 'john.doe@example.com',
+                        picture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+                      });
+                      setShowLoginModal(false);
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Mock Login (Development)
+                  </Button>
+                  
+                  <div className="text-xs text-gray-500 text-center">
+                    This creates a test user session for development purposes
+                  </div>
+                </div>
+
+                <div className="text-center text-sm text-gray-500">
+                  Don't have an account? <a href="#" className="text-green-600 hover:text-green-700 font-medium">Sign up</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
