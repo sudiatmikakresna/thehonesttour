@@ -648,6 +648,45 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
   // Google OAuth configuration
   const googleClientId = "647803137473-nu8tum4gjfg0cd8ankduhtsi53qisvp5.apps.googleusercontent.com";
 
+  // Auth utilities for localStorage
+  const saveAuthState = (userData: User) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('honestTourAuth', JSON.stringify({
+        user: userData,
+        timestamp: Date.now()
+      }));
+    }
+  };
+
+  const loadAuthState = (): User | null => {
+    if (typeof window !== 'undefined') {
+      try {
+        const authData = localStorage.getItem('honestTourAuth');
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          // Optional: Check if auth is still valid (e.g., within 30 days)
+          const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+          if (Date.now() - parsed.timestamp < thirtyDays) {
+            return parsed.user;
+          } else {
+            // Remove expired auth
+            localStorage.removeItem('honestTourAuth');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading auth state:', error);
+        localStorage.removeItem('honestTourAuth');
+      }
+    }
+    return null;
+  };
+
+  const clearAuthState = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('honestTourAuth');
+    }
+  };
+
   // State for comments
   const [comments, setComments] = useState([
     {
@@ -768,6 +807,14 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
     setShowShareMenu(!showShareMenu);
   };
 
+  // Load auth state from localStorage on component mount
+  useEffect(() => {
+    const savedUser = loadAuthState();
+    if (savedUser) {
+      setUser(savedUser);
+    }
+  }, []);
+
   // Google OAuth functions
   useEffect(() => {
     // Load Google OAuth script
@@ -800,6 +847,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
 
       const userData = JSON.parse(jsonPayload);
       setUser(userData);
+      saveAuthState(userData); // Save to localStorage
       setShowLoginModal(false);
       console.log('User logged in:', userData);
     } catch {
@@ -855,6 +903,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
 
   const logout = () => {
     setUser(null);
+    clearAuthState(); // Clear from localStorage
     if (window.google?.accounts?.id) {
       window.google.accounts.id.disableAutoSelect();
     }
@@ -2334,11 +2383,13 @@ Please confirm availability and provide payment details. Thank you!`;
                   <Button 
                     onClick={() => {
                       // Mock user data for development
-                      setUser({
+                      const mockUser = {
                         name: 'John Doe',
                         email: 'john.doe@example.com',
                         picture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-                      });
+                      };
+                      setUser(mockUser);
+                      saveAuthState(mockUser); // Save to localStorage
                       setShowLoginModal(false);
                     }}
                     className="w-full bg-blue-600 hover:bg-blue-700"

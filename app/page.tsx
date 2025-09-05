@@ -126,9 +126,79 @@ const destinations = [
 export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [parallaxLoaded, setParallaxLoaded] = useState(false);
+  const [parallaxOffset, setParallaxOffset] = useState(0);
 
   // Google OAuth configuration
   const googleClientId = "647803137473-nu8tum4gjfg0cd8ankduhtsi53qisvp5.apps.googleusercontent.com";
+
+  // Auth utilities for localStorage
+  const saveAuthState = (userData: User) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('honestTourAuth', JSON.stringify({
+        user: userData,
+        timestamp: Date.now()
+      }));
+    }
+  };
+
+  const loadAuthState = (): User | null => {
+    if (typeof window !== 'undefined') {
+      try {
+        const authData = localStorage.getItem('honestTourAuth');
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          // Optional: Check if auth is still valid (e.g., within 30 days)
+          const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+          if (Date.now() - parsed.timestamp < thirtyDays) {
+            return parsed.user;
+          } else {
+            // Remove expired auth
+            localStorage.removeItem('honestTourAuth');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading auth state:', error);
+        localStorage.removeItem('honestTourAuth');
+      }
+    }
+    return null;
+  };
+
+  const clearAuthState = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('honestTourAuth');
+    }
+  };
+
+  // Load auth state from localStorage on component mount
+  useEffect(() => {
+    const savedUser = loadAuthState();
+    if (savedUser) {
+      setUser(savedUser);
+    }
+  }, []);
+
+  // Trigger parallax fade-in animation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setParallaxLoaded(true);
+    }, 300); // Small delay for smooth effect
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Handle parallax scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.pageYOffset;
+      const parallax = scrolled * 0.5; // Adjust speed factor (0.5 = half speed)
+      setParallaxOffset(parallax);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     // Load Google OAuth script
@@ -161,6 +231,7 @@ export default function Home() {
 
       const userData = JSON.parse(jsonPayload);
       setUser(userData);
+      saveAuthState(userData); // Save to localStorage
       setShowLoginModal(false);
       console.log('User logged in:', userData);
     } catch (error) {
@@ -218,6 +289,7 @@ export default function Home() {
 
   const logout = () => {
     setUser(null);
+    clearAuthState(); // Clear from localStorage
     if (window.google?.accounts?.id) {
       window.google.accounts.id.disableAutoSelect();
     }
@@ -273,66 +345,87 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Search Section */}
-        <div className="mb-8 space-y-6">
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold">Discover Amazing Places</h2>
-            <p className="text-muted-foreground text-lg">Find the perfect destination for your next adventure</p>
-          </div>
-          
-          <div className="flex gap-4 max-w-2xl mx-auto">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Where do you want to go?" 
-                className="pl-10"
-              />
-            </div>
-            <Button size="lg" className="px-8">
-              Search
-            </Button>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Button variant="outline" size="sm">
-              <Filter className="w-4 h-4 mr-2" />
-              All Filters
-            </Button>
-            <Button variant="outline" size="sm">Price</Button>
-            <Button variant="outline" size="sm">Rating</Button>
-            <Button variant="outline" size="sm">Distance</Button>
-            <Button variant="outline" size="sm">Category</Button>
-          </div>
-        </div>
-
-        <Separator className="mb-8" />
-      </main>
-
-      {/* Parallax Section - Full Width */}
-      <div className="relative h-[60vh] min-h-[400px] overflow-hidden">
+      {/* Parallax Section with Search - Full Width */}
+      <div className="relative h-[85vh] min-h-[650px] overflow-hidden">
           {/* Parallax Background */}
           <div 
-            className="absolute inset-0 bg-cover bg-center bg-fixed"
+            className="absolute inset-0 bg-cover bg-center will-change-transform"
             style={{
-              backgroundImage: "url('https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3')"
+              backgroundImage: "url('https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3')",
+              transform: `translateY(${parallaxOffset}px)`,
+              height: '120%', // Make background taller for parallax effect
+              top: '-10%' // Offset to prevent white space
             }}
           >
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black/40"></div>
+            {/* Animated Fade Overlay */}
+            <div className={`absolute inset-0 bg-white transition-opacity duration-1000 ease-out ${
+              parallaxLoaded ? 'opacity-0' : 'opacity-100'
+            }`}></div>
+            {/* Main Overlay */}
+            <div className="absolute inset-0 bg-black/50"></div>
           </div>
           
           {/* Content */}
-          <div className="relative z-10 h-full flex items-center justify-center">
-            <div className="text-center text-white px-4 max-w-4xl mx-auto">
-              <h2 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                Discover the Magic of Bali
-              </h2>
-              <p className="text-xl md:text-2xl mb-8 leading-relaxed opacity-90">
-                From ancient temples to pristine beaches, experience Indonesia&apos;s island paradise
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="relative z-10 h-full flex flex-col justify-center items-center px-4">
+            <div className={`text-center text-white max-w-4xl mx-auto space-y-8 transition-all duration-1000 ease-out delay-300 ${
+              parallaxLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
+            }`}>
+              {/* Main Hero Content */}
+              <div className={`space-y-6 transition-all duration-1000 ease-out delay-500 ${
+                parallaxLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}>
+                <h2 className="text-4xl md:text-6xl font-bold leading-tight">
+                  Discover the Magic of Bali
+                </h2>
+                <p className="text-xl md:text-2xl leading-relaxed opacity-90">
+                  From ancient temples to pristine beaches, experience Indonesia&apos;s island paradise
+                </p>
+              </div>
+
+              {/* Search Section */}
+              <div className={`space-y-6 max-w-3xl mx-auto transition-all duration-1000 ease-out delay-700 ${
+                parallaxLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}>
+                <div className="space-y-4">
+                  <h3 className="text-2xl md:text-3xl font-bold">Find Your Perfect Adventure</h3>
+                  <p className="text-lg opacity-90">Search thousands of destinations and experiences</p>
+                </div>
+                
+                {/* Search Bar */}
+                <div className={`flex gap-4 max-w-2xl mx-auto transition-all duration-800 ease-out delay-900 ${
+                  parallaxLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'
+                }`}>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                    <Input 
+                      placeholder="Where do you want to go?" 
+                      className="pl-10 bg-white/95 backdrop-blur-md border-white/20 text-gray-900 placeholder:text-gray-600"
+                    />
+                  </div>
+                  <Button size="lg" className="px-8 bg-green-600 hover:bg-green-700 text-white">
+                    Search
+                  </Button>
+                </div>
+
+                {/* Filters */}
+                <div className={`flex flex-wrap gap-2 justify-center transition-all duration-800 ease-out delay-1000 ${
+                  parallaxLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                }`}>
+                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">
+                    <Filter className="w-4 h-4 mr-2" />
+                    All Filters
+                  </Button>
+                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">Price</Button>
+                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">Rating</Button>
+                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">Distance</Button>
+                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">Category</Button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className={`flex flex-col sm:flex-row gap-4 justify-center pt-4 transition-all duration-800 ease-out delay-1100 ${
+                parallaxLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'
+              }`}>
                 <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg">
                   Explore Tours
                 </Button>
@@ -344,9 +437,15 @@ export default function Home() {
           </div>
           
           {/* Floating Elements */}
-          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white rounded-full opacity-50 animate-pulse"></div>
-          <div className="absolute top-3/4 right-1/3 w-1 h-1 bg-white rounded-full opacity-60 animate-pulse delay-1000"></div>
-          <div className="absolute bottom-1/3 left-1/2 w-1.5 h-1.5 bg-white rounded-full opacity-40 animate-pulse delay-500"></div>
+          <div className={`absolute top-1/4 left-1/4 w-2 h-2 bg-white rounded-full animate-pulse transition-all duration-1500 ease-out delay-1200 ${
+            parallaxLoaded ? 'opacity-50 scale-100' : 'opacity-0 scale-0'
+          }`}></div>
+          <div className={`absolute top-3/4 right-1/3 w-1 h-1 bg-white rounded-full animate-pulse transition-all duration-1500 ease-out delay-1400 ${
+            parallaxLoaded ? 'opacity-60 scale-100' : 'opacity-0 scale-0'
+          }`}></div>
+          <div className={`absolute bottom-1/3 left-1/2 w-1.5 h-1.5 bg-white rounded-full animate-pulse transition-all duration-1500 ease-out delay-1600 ${
+            parallaxLoaded ? 'opacity-40 scale-100' : 'opacity-0 scale-0'
+          }`}></div>
         </div>
 
       <main className="container mx-auto px-4 py-8">
@@ -736,11 +835,13 @@ export default function Home() {
                   <Button 
                     onClick={() => {
                       // Mock user data for development
-                      setUser({
+                      const mockUser = {
                         name: 'John Doe',
                         email: 'john.doe@example.com',
                         picture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-                      });
+                      };
+                      setUser(mockUser);
+                      saveAuthState(mockUser); // Save to localStorage
                       setShowLoginModal(false);
                     }}
                     className="w-full bg-blue-600 hover:bg-blue-700"
