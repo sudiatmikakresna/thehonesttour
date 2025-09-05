@@ -1,13 +1,51 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Star, Heart, Share2, Wifi, Car, Coffee, Utensils, Waves, Dumbbell, Users, Calendar, Clock, Phone, Mail, Globe, ChevronDown, ChevronUp, MessageCircle, X, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube, CalendarDays, Minus, Plus, Link as LinkIcon, Check } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Heart, Share2, Wifi, Car, Coffee, Utensils, Waves, Dumbbell, Users, Calendar, Clock, Phone, Mail, Globe, ChevronDown, ChevronUp, MessageCircle, X, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube, CalendarDays, Minus, Plus, Link as LinkIcon, Check, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: GoogleConfig) => void;
+          prompt: (callback?: (notification: GooglePromptCallback) => void) => void;
+          disableAutoSelect: () => void;
+        };
+      };
+    };
+  }
+}
+
+interface GoogleLoginResponse {
+  credential: string;
+  select_by: string;
+}
+
+interface GoogleConfig {
+  client_id: string;
+  callback: (response: GoogleLoginResponse) => void;
+  auto_select?: boolean;
+  cancel_on_tap_outside?: boolean;
+}
+
+interface GooglePromptCallback {
+  isNotDisplayed?: () => boolean;
+  isSkippedMoment?: () => boolean;
+  getNotDisplayedReason?: () => string;
+}
+
+interface User {
+  name: string;
+  email: string;
+  picture: string;
+}
 
 const destinations = [
   {
@@ -603,6 +641,55 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
   // State for toast notification
   const [showToast, setShowToast] = useState(false);
 
+  // State for authentication
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Google OAuth configuration
+  const googleClientId = "647803137473-nu8tum4gjfg0cd8ankduhtsi53qisvp5.apps.googleusercontent.com";
+
+  // State for comments
+  const [comments, setComments] = useState([
+    {
+      id: 1,
+      user: {
+        name: "Sarah Wilson",
+        avatar: "https://images.unsplash.com/photo-1494790108755-2616b45c1db3?w=150&h=150&fit=crop&crop=face"
+      },
+      rating: 5,
+      comment: "Absolutely amazing experience! The guide was knowledgeable and the views were breathtaking. Would definitely recommend this tour to anyone visiting Bali.",
+      date: "2024-01-15",
+      helpful: 12
+    },
+    {
+      id: 2,
+      user: {
+        name: "Mike Chen",
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+      },
+      rating: 4,
+      comment: "Great tour overall! The temple was beautiful and our guide explained the history very well. Only minor issue was the pickup was slightly delayed.",
+      date: "2024-01-10",
+      helpful: 8
+    },
+    {
+      id: 3,
+      user: {
+        name: "Emma Rodriguez",
+        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
+      },
+      rating: 5,
+      comment: "Perfect day out! The sunrise at the temple was magical. Transportation was comfortable and lunch was delicious. Highly recommended!",
+      date: "2024-01-08",
+      helpful: 15
+    }
+  ]);
+
+  const [newComment, setNewComment] = useState({
+    rating: 5,
+    comment: ""
+  });
+
   const toggleSection = (section: keyof typeof collapsedSections) => {
     setCollapsedSections(prev => ({
       ...prev,
@@ -617,14 +704,14 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
     });
   };
 
-  const closeGallery = () => {
+  const closeGallery = useCallback(() => {
     setGalleryState({
       isOpen: false,
       currentImageIndex: 0
     });
-  };
+  }, []);
 
-  const navigateGallery = (direction: 'prev' | 'next') => {
+  const navigateGallery = useCallback((direction: 'prev' | 'next') => {
     if (!destination) return;
     const maxIndex = destination.images.length - 1;
     setGalleryState(prev => ({
@@ -633,7 +720,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
         ? (prev.currentImageIndex + 1) % (destination?.images.length || 1)
         : prev.currentImageIndex === 0 ? maxIndex : prev.currentImageIndex - 1
     }));
-  };
+  }, [destination]);
 
   const selectImage = (index: number) => {
     setGalleryState(prev => ({
@@ -643,6 +730,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
   };
 
   const handleShareToFacebook = () => {
+    if (!destination) return;
     const url = encodeURIComponent(window.location.href);
     const text = encodeURIComponent(`Check out ${destination.name} - ${destination.description}`);
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
@@ -650,6 +738,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
   };
 
   const handleShareToTwitter = () => {
+    if (!destination) return;
     const url = encodeURIComponent(window.location.href);
     const text = encodeURIComponent(`Check out ${destination.name} - ${destination.description}`);
     window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
@@ -661,7 +750,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
       await navigator.clipboard.writeText(window.location.href);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
-    } catch (error) {
+    } catch {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = window.location.href;
@@ -679,7 +768,101 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
     setShowShareMenu(!showShareMenu);
   };
 
+  // Google OAuth functions
+  useEffect(() => {
+    // Load Google OAuth script
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogle;
+    script.onerror = () => {
+      console.error('Failed to load Google OAuth script');
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
+  const handleGoogleLogin = useCallback((response: GoogleLoginResponse) => {
+    try {
+      // Decode the JWT token to get user info
+      const token = response.credential;
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+
+      const userData = JSON.parse(jsonPayload);
+      setUser(userData);
+      setShowLoginModal(false);
+      console.log('User logged in:', userData);
+    } catch {
+      console.error('Error processing login');
+    }
+  }, []);
+
+  const initializeGoogle = useCallback(() => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleLogin,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+      } catch {
+        console.error('Failed to initialize Google OAuth');
+      }
+    }
+  }, [googleClientId, handleGoogleLogin]);
+
+  const openLoginModal = () => {
+    setShowLoginModal(true);
+  };
+
+  const closeLoginModal = () => {
+    setShowLoginModal(false);
+  };
+
+  const handleGoogleSignIn = () => {
+    try {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+            console.log('Google Sign-In prompt not displayed:', notification.getNotDisplayedReason?.());
+            showManualSignInFallback();
+          }
+        });
+      } else {
+        console.error('Google OAuth not loaded');
+        showManualSignInFallback();
+      }
+    } catch (error) {
+      console.error('Error with Google Sign-In:', error);
+      showManualSignInFallback();
+    }
+  };
+
+  const showManualSignInFallback = () => {
+    alert('Google Sign-In is currently unavailable. Use the mock login for testing.');
+  };
+
+  const logout = () => {
+    setUser(null);
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect();
+    }
+  };
+
   const handleBookNow = () => {
+    if (!destination) return;
+    
     const message = `Hi! I'd like to book a tour:
 
 🏖️ *${destination.name}*
@@ -696,6 +879,34 @@ Please confirm availability and provide payment details. Thank you!`;
     const whatsappURL = `https://wa.me/6281934374633?text=${encodedMessage}`;
     
     window.open(whatsappURL, '_blank');
+  };
+
+  const handleSubmitComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newComment.comment.trim()) return;
+
+    const comment = {
+      id: Date.now(),
+      user: {
+        name: user.name,
+        avatar: user.picture
+      },
+      rating: newComment.rating,
+      comment: newComment.comment.trim(),
+      date: new Date().toISOString().split('T')[0],
+      helpful: 0
+    };
+
+    setComments(prev => [comment, ...prev]);
+    setNewComment({ rating: 5, comment: "" });
+  };
+
+  const handleHelpful = (commentId: number) => {
+    setComments(prev => prev.map(comment => 
+      comment.id === commentId 
+        ? { ...comment, helpful: comment.helpful + 1 }
+        : comment
+    ));
   };
 
   // Keyboard navigation for gallery
@@ -738,7 +949,17 @@ Please confirm availability and provide payment details. Thank you!`;
   }, [showShareMenu]);
   
   if (!destination) {
-    return <div>Destination not found</div>;
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Destination Not Found</h1>
+          <p className="text-gray-600 mb-4">The destination you&apos;re looking for doesn&apos;t exist.</p>
+          <Link href="/" className="text-green-600 hover:text-green-700">
+            Return to Home
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -803,6 +1024,31 @@ Please confirm availability and provide payment details. Thank you!`;
                   </div>
                 )}
               </div>
+              
+              {/* Authentication Button */}
+              {user ? (
+                <div className="flex items-center gap-2 ml-2">
+                  <div className="flex items-center gap-2">
+                    <Image 
+                      src={user.picture} 
+                      alt={user.name}
+                      width={32}
+                      height={32}
+                      className="w-6 h-6 md:w-8 md:h-8 rounded-full"
+                    />
+                    <span className="hidden md:inline text-sm font-medium truncate max-w-[100px]">{user.name}</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={logout} className="text-xs p-1 md:p-2">
+                    <span className="hidden md:inline">Logout</span>
+                    <span className="md:hidden">Out</span>
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" className="p-2 md:px-3 ml-2" onClick={openLoginModal}>
+                  <User className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Login</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -1442,7 +1688,7 @@ Please confirm availability and provide payment details. Thank you!`;
                         <div>
                           <p className="font-semibold text-green-800 mb-1">Eco-Friendly Tourism</p>
                           <p className="text-sm text-green-700">
-                            We are committed to sustainable tourism. Please respect local customs, don't litter, and be mindful of the environment.
+                            We are committed to sustainable tourism. Please respect local customs, don&apos;t litter, and be mindful of the environment.
                           </p>
                         </div>
                       </div>
@@ -1463,6 +1709,155 @@ Please confirm availability and provide payment details. Thank you!`;
                   </div>
                 </CardContent>
               )}
+            </Card>
+
+            {/* Comments Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5" />
+                  Reviews & Comments ({comments.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Comment Form - Only show if user is logged in */}
+                {user ? (
+                  <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Image 
+                        src={user.picture} 
+                        alt={user.name}
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full"
+                      />
+                      <div>
+                        <p className="font-semibold text-sm">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">Share your experience</p>
+                      </div>
+                    </div>
+                    
+                    <form onSubmit={handleSubmitComment} className="space-y-4">
+                      {/* Rating */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Your Rating</label>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setNewComment(prev => ({ ...prev, rating: star }))}
+                              className="focus:outline-none"
+                            >
+                              <Star 
+                                className={`w-6 h-6 ${
+                                  star <= newComment.rating 
+                                    ? 'fill-yellow-400 text-yellow-400' 
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            ({newComment.rating} star{newComment.rating !== 1 ? 's' : ''})
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Comment Text */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Your Review</label>
+                        <textarea
+                          value={newComment.comment}
+                          onChange={(e) => setNewComment(prev => ({ ...prev, comment: e.target.value }))}
+                          placeholder="Share your thoughts about this tour..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                          rows={4}
+                        />
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="flex justify-end">
+                        <Button 
+                          type="submit" 
+                          className="bg-green-600 hover:bg-green-700"
+                          disabled={!newComment.comment.trim()}
+                        >
+                          Post Review
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-3">
+                      <MessageCircle className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-800">Want to leave a review?</p>
+                        <p className="text-sm text-blue-600">
+                          <button 
+                            onClick={openLoginModal}
+                            className="underline hover:no-underline font-medium"
+                          >
+                            Sign in
+                          </button> to share your experience with other travelers.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Comments List */}
+                <div className="space-y-6">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+                      <div className="flex items-start gap-3">
+                        <Image 
+                          src={comment.user.avatar} 
+                          alt={comment.user.name}
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-full flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <p className="font-semibold text-sm">{comment.user.name}</p>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center">
+                                  {Array.from({ length: comment.rating }).map((_, i) => (
+                                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                  ))}
+                                </div>
+                                <span className="text-xs text-muted-foreground">{comment.date}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+                            {comment.comment}
+                          </p>
+                          <div className="flex items-center gap-4">
+                            <button
+                              onClick={() => handleHelpful(comment.id)}
+                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-green-600 transition-colors"
+                            >
+                              <Heart className="w-4 h-4" />
+                              Helpful ({comment.helpful})
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Load More Button */}
+                <div className="mt-8 text-center">
+                  <Button variant="outline">
+                    Load More Reviews
+                  </Button>
+                </div>
+              </CardContent>
             </Card>
           </div>
 
@@ -1883,6 +2278,85 @@ Please confirm availability and provide payment details. Thank you!`;
         <div className="fixed top-4 right-4 z-[70] bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-right-5 duration-300">
           <Check className="w-4 h-4" />
           <span>Link copied to clipboard!</span>
+        </div>
+      )}
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative animate-in fade-in-0 zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              onClick={closeLoginModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Modal Content */}
+            <div className="text-center space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+                <p className="text-gray-600">Sign in to access your account and continue your journey</p>
+              </div>
+
+              {/* Google Sign In Button */}
+              <div className="space-y-4">
+                <div 
+                  id="google-signin-button"
+                  className="flex items-center justify-center"
+                >
+                  <button
+                    onClick={handleGoogleSignIn}
+                    className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 group"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    <span className="font-medium text-gray-700 group-hover:text-gray-900">Continue with Google</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">For development testing</span>
+                  </div>
+                </div>
+
+                {/* Mock Login for Development */}
+                <div className="space-y-4">
+                  <Button 
+                    onClick={() => {
+                      // Mock user data for development
+                      setUser({
+                        name: 'John Doe',
+                        email: 'john.doe@example.com',
+                        picture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+                      });
+                      setShowLoginModal(false);
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Mock Login (Development)
+                  </Button>
+                  
+                  <div className="text-xs text-gray-500 text-center">
+                    This creates a test user session for development purposes
+                  </div>
+                </div>
+
+                <div className="text-center text-sm text-gray-500">
+                  Don&apos;t have an account? <a href="#" className="text-green-600 hover:text-green-700 font-medium">Sign up</a>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

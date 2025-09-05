@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Filter, MapPin, Star, Heart, Share2, MessageCircle, Facebook, Twitter, Instagram, Youtube, Phone, Mail, Globe, User, X } from "lucide-react";
@@ -9,6 +9,44 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: GoogleConfig) => void;
+          prompt: (callback?: (notification: GooglePromptCallback) => void) => void;
+          disableAutoSelect: () => void;
+        };
+      };
+    };
+  }
+}
+
+interface GoogleLoginResponse {
+  credential: string;
+  select_by: string;
+}
+
+interface GoogleConfig {
+  client_id: string;
+  callback: (response: GoogleLoginResponse) => void;
+  auto_select?: boolean;
+  cancel_on_tap_outside?: boolean;
+}
+
+interface GooglePromptCallback {
+  isNotDisplayed?: () => boolean;
+  isSkippedMoment?: () => boolean;
+  getNotDisplayedReason?: () => string;
+}
+
+interface User {
+  name: string;
+  email: string;
+  picture: string;
+}
 
 const destinations = [
   {
@@ -87,7 +125,7 @@ const destinations = [
 
 export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
 
   // Google OAuth configuration
   const googleClientId = "647803137473-nu8tum4gjfg0cd8ankduhtsi53qisvp5.apps.googleusercontent.com";
@@ -111,22 +149,7 @@ export default function Home() {
     };
   }, []);
 
-  const initializeGoogle = () => {
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: handleGoogleLogin,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-        });
-      } catch (error) {
-        console.error('Failed to initialize Google OAuth:', error);
-      }
-    }
-  };
-
-  const handleGoogleLogin = (response) => {
+  const handleGoogleLogin = useCallback((response: GoogleLoginResponse) => {
     try {
       // Decode the JWT token to get user info
       const token = response.credential;
@@ -143,7 +166,22 @@ export default function Home() {
     } catch (error) {
       console.error('Error processing login:', error);
     }
-  };
+  }, []);
+
+  const initializeGoogle = useCallback(() => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleLogin,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+      } catch (error) {
+        console.error('Failed to initialize Google OAuth:', error);
+      }
+    }
+  }, [googleClientId, handleGoogleLogin]);
 
   const openLoginModal = () => {
     setShowLoginModal(true);
@@ -158,8 +196,8 @@ export default function Home() {
       if (window.google?.accounts?.id) {
         // Try to use the prompt method
         window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            console.log('Google Sign-In prompt not displayed:', notification.getNotDisplayedReason());
+          if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+            console.log('Google Sign-In prompt not displayed:', notification.getNotDisplayedReason?.());
             // Fallback: Show manual sign-in option
             showManualSignInFallback();
           }
@@ -211,9 +249,11 @@ export default function Home() {
               {user ? (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <img 
+                    <Image 
                       src={user.picture} 
                       alt={user.name}
+                      width={32}
+                      height={32}
                       className="w-8 h-8 rounded-full"
                     />
                     <span className="hidden md:inline text-sm font-medium">{user.name}</span>
@@ -290,7 +330,7 @@ export default function Home() {
                 Discover the Magic of Bali
               </h2>
               <p className="text-xl md:text-2xl mb-8 leading-relaxed opacity-90">
-                From ancient temples to pristine beaches, experience Indonesia's island paradise
+                From ancient temples to pristine beaches, experience Indonesia&apos;s island paradise
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg">
@@ -714,7 +754,7 @@ export default function Home() {
                 </div>
 
                 <div className="text-center text-sm text-gray-500">
-                  Don't have an account? <a href="#" className="text-green-600 hover:text-green-700 font-medium">Sign up</a>
+                  Don&apos;t have an account? <a href="#" className="text-green-600 hover:text-green-700 font-medium">Sign up</a>
                 </div>
               </div>
             </div>
