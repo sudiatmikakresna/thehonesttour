@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Star, Heart, Share2, Wifi, Car, Coffee, Utensils, Waves, Dumbbell, Users, Calendar, Clock, Phone, Mail, Globe, ChevronDown, ChevronUp, MessageCircle, X, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Heart, Share2, Wifi, Car, Coffee, Utensils, Waves, Dumbbell, Users, Calendar, Clock, Phone, Mail, Globe, ChevronDown, ChevronUp, MessageCircle, X, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube, CalendarDays, Minus, Plus, Link as LinkIcon, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -574,10 +574,13 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
   
   // State for collapsible sections
   const [collapsedSections, setCollapsedSections] = useState({
-    description: false,
-    amenities: false,
+    tourDetails: false,
+    additionalInfo: false,
     schedule: false,
-    reviews: false
+    includes: false,
+    whatToBring: false,
+    faq: false,
+    notes: false
   });
 
   // State for image gallery
@@ -585,6 +588,20 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
     isOpen: false,
     currentImageIndex: 0
   });
+
+  // State for booking form
+  const [bookingForm, setBookingForm] = useState({
+    date: '2024-12-20',
+    guests: 2,
+    startTime: '8 AM',
+    duration: '8 hours'
+  });
+
+  // State for share dropdown
+  const [showShareMenu, setShowShareMenu] = useState(false);
+
+  // State for toast notification
+  const [showToast, setShowToast] = useState(false);
 
   const toggleSection = (section: keyof typeof collapsedSections) => {
     setCollapsedSections(prev => ({
@@ -625,6 +642,62 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
     }));
   };
 
+  const handleShareToFacebook = () => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Check out ${destination.name} - ${destination.description}`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleShareToTwitter = () => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Check out ${destination.name} - ${destination.description}`);
+    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = window.location.href;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+    setShowShareMenu(false);
+  };
+
+  const toggleShareMenu = () => {
+    setShowShareMenu(!showShareMenu);
+  };
+
+  const handleBookNow = () => {
+    const message = `Hi! I'd like to book a tour:
+
+🏖️ *${destination.name}*
+📍 Location: ${destination.location}
+📅 Date: ${bookingForm.date}
+👥 Guests: ${bookingForm.guests} ${bookingForm.guests === 1 ? 'person' : 'people'}
+⏰ Start Time: ${bookingForm.startTime}
+⏳ Duration: ${bookingForm.duration}
+💰 Total Price: $${destination.price * bookingForm.guests}
+
+Please confirm availability and provide payment details. Thank you!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappURL = `https://wa.me/6281934374633?text=${encodedMessage}`;
+    
+    window.open(whatsappURL, '_blank');
+  };
+
   // Keyboard navigation for gallery
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -648,6 +721,21 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [galleryState.isOpen, navigateGallery, closeGallery]);
+
+  // Close share menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showShareMenu) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.relative')) {
+          setShowShareMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showShareMenu]);
   
   if (!destination) {
     return <div>Destination not found</div>;
@@ -682,10 +770,39 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
                 <Heart className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Save</span>
               </Button>
-              <Button variant="outline" size="sm" className="p-2 md:px-3">
-                <Share2 className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Share</span>
-              </Button>
+              <div className="relative">
+                <Button variant="outline" size="sm" className="p-2 md:px-3" onClick={toggleShareMenu}>
+                  <Share2 className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Share</span>
+                </Button>
+                {showShareMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="py-2">
+                      <button
+                        onClick={handleShareToFacebook}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
+                      >
+                        <Facebook className="w-4 h-4 text-blue-600" />
+                        Share to Facebook
+                      </button>
+                      <button
+                        onClick={handleShareToTwitter}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
+                      >
+                        <Twitter className="w-4 h-4 text-blue-400" />
+                        Share to Twitter
+                      </button>
+                      <button
+                        onClick={handleCopyLink}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
+                      >
+                        <LinkIcon className="w-4 h-4 text-gray-600" />
+                        Copy Link
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -853,18 +970,18 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
           <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Description */}
+            {/* Tour Details */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>About this place</CardTitle>
+                  <CardTitle>Tour Details</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => toggleSection('description')}
+                    onClick={() => toggleSection('tourDetails')}
                     className="p-2"
                   >
-                    {collapsedSections.description ? (
+                    {collapsedSections.tourDetails ? (
                       <ChevronDown className="w-4 h-4" />
                     ) : (
                       <ChevronUp className="w-4 h-4" />
@@ -872,27 +989,59 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
                   </Button>
                 </div>
               </CardHeader>
-              {!collapsedSections.description && (
+              {!collapsedSections.tourDetails && (
                 <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {destination.fullDescription}
-                  </p>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground leading-relaxed">
+                      {destination.fullDescription}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      <div className="space-y-2">
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-green-600" />
+                          Duration
+                        </h4>
+                        <p className="text-sm text-muted-foreground">4 days, 3 nights</p>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <Users className="w-4 h-4 text-green-600" />
+                          Group Size
+                        </h4>
+                        <p className="text-sm text-muted-foreground">Maximum 12 people</p>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-green-600" />
+                          Meeting Point
+                        </h4>
+                        <p className="text-sm text-muted-foreground">{destination.location}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <Star className="w-4 h-4 text-green-600" />
+                          Difficulty Level
+                        </h4>
+                        <p className="text-sm text-muted-foreground">Easy to Moderate</p>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               )}
             </Card>
 
-            {/* Amenities */}
+            {/* Additional Information */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Amenities</CardTitle>
+                  <CardTitle>Additional Information</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => toggleSection('amenities')}
+                    onClick={() => toggleSection('additionalInfo')}
                     className="p-2"
                   >
-                    {collapsedSections.amenities ? (
+                    {collapsedSections.additionalInfo ? (
                       <ChevronDown className="w-4 h-4" />
                     ) : (
                       <ChevronUp className="w-4 h-4" />
@@ -900,30 +1049,31 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
                   </Button>
                 </div>
               </CardHeader>
-              {!collapsedSections.amenities && (
+              {!collapsedSections.additionalInfo && (
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {destination.amenities.map((amenity, index) => {
-                      const IconComponent = amenity.icon;
-                      return (
-                        <div key={index} className="flex gap-4 p-4 rounded-lg border border-gray-100 hover:border-green-200 transition-colors">
-                          <div className="flex-shrink-0">
-                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                              <IconComponent className="w-5 h-5 text-green-600" />
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-foreground mb-1">{amenity.name}</h4>
-                            <p className="text-sm text-muted-foreground mb-2 leading-relaxed">
-                              {amenity.description}
-                            </p>
-                            <p className="text-xs text-green-600 font-medium">
-                              {amenity.details}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Important Information</h4>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li>• Minimum age requirement: 12 years old</li>
+                        <li>• Weather dependent activities - alternative indoor options available</li>
+                        <li>• Professional photography service available for additional cost</li>
+                        <li>• Vegetarian and dietary restrictions can be accommodated</li>
+                        <li>• Free cancellation up to 24 hours before the tour</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Accessibility</h4>
+                      <p className="text-sm text-muted-foreground">
+                        This tour involves walking on uneven surfaces. Please contact us to discuss specific accessibility needs.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Languages</h4>
+                      <p className="text-sm text-muted-foreground">
+                        English, Indonesian, and Japanese speaking guides available
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               )}
@@ -1003,58 +1153,314 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
               )}
             </Card>
 
-            {/* Reviews */}
+            {/* Includes */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    {destination.rating} · {destination.reviewCount.toLocaleString()} reviews
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">View all reviews</Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSection('reviews')}
-                      className="p-2"
-                    >
-                      {collapsedSections.reviews ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronUp className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
+                  <CardTitle>Includes</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSection('includes')}
+                    className="p-2"
+                  >
+                    {collapsedSections.includes ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4" />
+                    )}
+                  </Button>
                 </div>
               </CardHeader>
-              {!collapsedSections.reviews && (
-                <CardContent className="space-y-6">
-                {destination.reviews.map((review) => (
-                  <div key={review.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                          {review.name.charAt(0)}
+              {!collapsedSections.includes && (
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold mb-3 text-green-600">✓ Included</h4>
+                      <ul className="space-y-2">
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>Professional English-speaking guide</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>All entrance fees and tickets</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>Transportation in air-conditioned vehicle</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>Traditional lunch and refreshments</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>Bottled water throughout the tour</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>Safety equipment when required</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>Insurance coverage</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-3 text-red-600">✗ Not Included</h4>
+                      <ul className="space-y-2">
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-red-600 mt-0.5">•</span>
+                          <span>Personal expenses and shopping</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-red-600 mt-0.5">•</span>
+                          <span>Tips for guide and driver</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-red-600 mt-0.5">•</span>
+                          <span>Additional meals not mentioned</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-red-600 mt-0.5">•</span>
+                          <span>Travel insurance (recommended)</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span className="text-red-600 mt-0.5">•</span>
+                          <span>Hotel pickup outside designated areas</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* What to Bring */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>What to Bring</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSection('whatToBring')}
+                    className="p-2"
+                  >
+                    {collapsedSections.whatToBring ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              {!collapsedSections.whatToBring && (
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold mb-3 text-blue-600">Essential Items</h4>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                          <span>Comfortable walking shoes</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                          <span>Sun hat and sunglasses</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                          <span>Sunscreen (SPF 30+ recommended)</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                          <span>Light, breathable clothing</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                          <span>Valid ID/passport</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                          <span>Cash for personal expenses</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-3 text-purple-600">Recommended Items</h4>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
+                          <span>Camera or smartphone for photos</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
+                          <span>Small backpack or daypack</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
+                          <span>Insect repellent</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
+                          <span>Light rain jacket (wet season)</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
+                          <span>Power bank for devices</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
+                          <span>Reusable water bottle</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* FAQ */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>FAQ</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSection('faq')}
+                    className="p-2"
+                  >
+                    {collapsedSections.faq ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              {!collapsedSections.faq && (
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="border-b border-gray-100 pb-4">
+                      <h4 className="font-semibold mb-2">What happens if it rains?</h4>
+                      <p className="text-sm text-muted-foreground">
+                        We provide covered areas and indoor alternatives. Tours continue in light rain with provided rain gear, but may be postponed in heavy storms for safety.
+                      </p>
+                    </div>
+                    <div className="border-b border-gray-100 pb-4">
+                      <h4 className="font-semibold mb-2">Can I cancel my booking?</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Yes, free cancellation is available up to 24 hours before the tour. Cancellations within 24 hours are subject to a 50% charge.
+                      </p>
+                    </div>
+                    <div className="border-b border-gray-100 pb-4">
+                      <h4 className="font-semibold mb-2">Is this tour suitable for children?</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Children 12 years and older are welcome. Children must be accompanied by adults at all times. Special rates available for children under 18.
+                      </p>
+                    </div>
+                    <div className="border-b border-gray-100 pb-4">
+                      <h4 className="font-semibold mb-2">How physically demanding is this tour?</h4>
+                      <p className="text-sm text-muted-foreground">
+                        The tour involves moderate walking on uneven surfaces. A reasonable level of fitness is recommended. Please inform us of any mobility concerns.
+                      </p>
+                    </div>
+                    <div className="border-b border-gray-100 pb-4">
+                      <h4 className="font-semibold mb-2">What should I do if I have dietary restrictions?</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Please inform us of any dietary restrictions or allergies when booking. We can accommodate most dietary needs with advance notice.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Is tipping expected?</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Tipping is appreciated but not mandatory. A general guideline is 10-15% of the tour cost for exceptional service.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Notes */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Notes</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSection('notes')}
+                    className="p-2"
+                  >
+                    {collapsedSections.notes ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              {!collapsedSections.notes && (
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-xs font-bold">!</span>
                         </div>
                         <div>
-                          <p className="font-semibold text-sm">{review.name}</p>
-                          <p className="text-xs text-muted-foreground">{review.date}</p>
+                          <p className="font-semibold text-yellow-800 mb-1">Important Safety Information</p>
+                          <p className="text-sm text-yellow-700">
+                            Please follow all safety instructions from your guide. Some activities may not be suitable for pregnant women or people with heart conditions.
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: review.rating }).map((_, i) => (
-                          <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        ))}
+                    </div>
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-xs font-bold">i</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-blue-800 mb-1">Cultural Etiquette</p>
+                          <p className="text-sm text-blue-700">
+                            When visiting temples, please dress modestly (shoulders and knees covered). Sarongs will be provided if needed.
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{review.text}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {review.helpful} people found this helpful
-                    </p>
-                    <Separator className="mt-4" />
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-xs font-bold">✓</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-green-800 mb-1">Eco-Friendly Tourism</p>
+                          <p className="text-sm text-green-700">
+                            We are committed to sustainable tourism. Please respect local customs, don't litter, and be mindful of the environment.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Phone className="w-3 h-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-800 mb-1">Emergency Contact</p>
+                          <p className="text-sm text-gray-700">
+                            Our 24/7 emergency hotline: +62 812-3456-7890. Save this number in your phone before the tour starts.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ))}
                 </CardContent>
               )}
             </Card>
@@ -1066,7 +1472,7 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
             <Card className="sticky top-4">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>${destination.price} per night</span>
+                  <span>Book Your Tour</span>
                   <div className="flex items-center gap-1 text-sm">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     {destination.rating}
@@ -1074,70 +1480,127 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Select Date and Participants</h3>
+                  
+                  {/* Date Selection */}
                   <div>
-                    <label className="text-sm font-medium">Check-in</label>
-                    <div className="border rounded-md p-2 text-sm">12/20/2024</div>
+                    <label className="text-sm font-medium mb-1 block">Date</label>
+                    <div className="relative">
+                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="date"
+                        value={bookingForm.date}
+                        onChange={(e) => setBookingForm(prev => ({ ...prev, date: e.target.value }))}
+                        className="w-full pl-10 pr-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
                   </div>
+
+                  {/* Guest Selection */}
                   <div>
-                    <label className="text-sm font-medium">Check-out</label>
-                    <div className="border rounded-md p-2 text-sm">12/25/2024</div>
+                    <label className="text-sm font-medium mb-1 block">Guests</label>
+                    <div className="flex items-center border rounded-md">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setBookingForm(prev => ({ ...prev, guests: Math.max(1, prev.guests - 1) }))}
+                        className="h-10 px-3 rounded-none"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <div className="flex-1 text-center py-2 text-sm font-medium">
+                        {bookingForm.guests} {bookingForm.guests === 1 ? 'guest' : 'guests'}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setBookingForm(prev => ({ ...prev, guests: Math.min(12, prev.guests + 1) }))}
+                        className="h-10 px-3 rounded-none"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Maximum 12 guests</p>
+                  </div>
+
+                  {/* Starting Time */}
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Starting Time</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['4 AM', '6 AM', '8 AM'].map((time) => (
+                        <Button
+                          key={time}
+                          variant={bookingForm.startTime === time ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setBookingForm(prev => ({ ...prev, startTime: time }))}
+                          className="h-9"
+                        >
+                          {time}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Duration */}
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Duration</label>
+                    <div className="flex items-center gap-2 p-2 border rounded-md bg-gray-50">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm">{bookingForm.duration}</span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Guests</label>
-                  <div className="border rounded-md p-2 text-sm">2 guests</div>
-                </div>
-                <Button className="w-full" size="lg">
-                  Reserve Now
-                </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  You won&apos;t be charged yet
-                </p>
+
                 <Separator />
+
+                {/* Pricing Breakdown */}
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>${destination.price} x 5 nights</span>
-                    <span>${destination.price * 5}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Service fee</span>
-                    <span>$99</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Taxes</span>
-                    <span>$180</span>
+                    <span>${destination.price} x {bookingForm.guests} guests</span>
+                    <span>${destination.price * bookingForm.guests}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>${destination.price * 5 + 99 + 180}</span>
+                  <div className="flex justify-between font-semibold text-lg">
+                    <span>Total Price</span>
+                    <span>${destination.price * bookingForm.guests}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Contact Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="w-4 h-4 text-green-600" />
-                  {destination.contact.phone}
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4 text-green-600" />
-                  {destination.contact.email}
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Globe className="w-4 h-4 text-green-600" />
-                  Visit website
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-green-600" />
-                  {destination.hours}
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700" 
+                  size="lg"
+                  onClick={handleBookNow}
+                >
+                  Book Now
+                </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  Free cancellation up to 24 hours before the tour
+                </p>
+
+                <Separator />
+
+                {/* Contact Information */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold">Contact Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="w-4 h-4 text-green-600" />
+                      <span>{destination.contact.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="w-4 h-4 text-green-600" />
+                      <span>{destination.contact.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Globe className="w-4 h-4 text-green-600" />
+                      <span>Visit website</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="w-4 h-4 text-green-600" />
+                      <span>{destination.hours}</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1412,6 +1875,14 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-[70] bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-right-5 duration-300">
+          <Check className="w-4 h-4" />
+          <span>Link copied to clipboard!</span>
         </div>
       )}
     </div>

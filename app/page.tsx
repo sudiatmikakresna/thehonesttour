@@ -146,6 +146,91 @@ export default function Home() {
         </div>
 
         <Separator className="mb-8" />
+      </main>
+
+      {/* Parallax Section - Full Width */}
+      <div className="relative h-[60vh] min-h-[400px] overflow-hidden">
+          {/* Parallax Background */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-fixed"
+            style={{
+              backgroundImage: "url('https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3')"
+            }}
+          >
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/40"></div>
+          </div>
+          
+          {/* Content */}
+          <div className="relative z-10 h-full flex items-center justify-center">
+            <div className="text-center text-white px-4 max-w-4xl mx-auto">
+              <h2 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                Discover the Magic of Bali
+              </h2>
+              <p className="text-xl md:text-2xl mb-8 leading-relaxed opacity-90">
+                From ancient temples to pristine beaches, experience Indonesia's island paradise
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg">
+                  Explore Tours
+                </Button>
+                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-black px-8 py-3 text-lg">
+                  Watch Video
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Floating Elements */}
+          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white rounded-full opacity-50 animate-pulse"></div>
+          <div className="absolute top-3/4 right-1/3 w-1 h-1 bg-white rounded-full opacity-60 animate-pulse delay-1000"></div>
+          <div className="absolute bottom-1/3 left-1/2 w-1.5 h-1.5 bg-white rounded-full opacity-40 animate-pulse delay-500"></div>
+        </div>
+
+      <main className="container mx-auto px-4 py-8">
+        {/* Why Choose The Honest Tour Section */}
+        <div className="mb-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Why choose The Honest Tour</h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Experience travel like never before with our commitment to authenticity, transparency, and unforgettable adventures.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <Star className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold">Authentic Experiences</h3>
+              <p className="text-muted-foreground">
+                Discover genuine local experiences with carefully curated destinations that showcase the true essence of each location.
+              </p>
+            </div>
+            
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                <Heart className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold">Transparent Reviews</h3>
+              <p className="text-muted-foreground">
+                Read honest, unbiased reviews from real travelers. No fake reviews, no hidden fees - just genuine insights you can trust.
+              </p>
+            </div>
+            
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                <MapPin className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold">Local Expertise</h3>
+              <p className="text-muted-foreground">
+                Benefit from insider knowledge and local connections that help you discover hidden gems and avoid tourist traps.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Separator className="mb-8" />
 
         {/* Results Header */}
         <div className="flex items-center justify-between mb-6">
