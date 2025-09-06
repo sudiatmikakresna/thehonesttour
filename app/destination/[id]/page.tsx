@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Star, Heart, Share2, Wifi, Car, Coffee, Utensils, Waves, Dumbbell, Users, Calendar, Clock, Phone, Mail, Globe, ChevronDown, ChevronUp, MessageCircle, X, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube, CalendarDays, Minus, Plus, Link as LinkIcon, Check, User } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Heart, Share2, Wifi, Car, Coffee, Utensils, Waves, Dumbbell, Users, Calendar, Clock, Phone, Mail, Globe, ChevronDown, ChevronUp, MessageCircle, X, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube, CalendarDays, Minus, Plus, Link as LinkIcon, Check, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ToursService, transformApiTourToLocal } from "@/services/tours";
 
 declare global {
   interface Window {
@@ -47,7 +48,7 @@ interface User {
   picture: string;
 }
 
-const destinations = [
+const fallbackDestinations = [
   {
     id: 1,
     name: "The Ritz-Carlton, Bali",
@@ -608,7 +609,11 @@ const destinations = [
 
 export default function DestinationDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const destination = destinations.find(d => d.id === parseInt(id));
+  
+  // API state management
+  const [destination, setDestination] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // State for collapsible sections
   const [collapsedSections, setCollapsedSections] = useState({
@@ -644,6 +649,9 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
   // State for authentication
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+
+  // State for related tours
+  const [relatedTours, setRelatedTours] = useState<any[]>([]);
 
   // Google OAuth configuration
   const googleClientId = "647803137473-nu8tum4gjfg0cd8ankduhtsi53qisvp5.apps.googleusercontent.com";
@@ -814,6 +822,110 @@ export default function DestinationDetail({ params }: { params: Promise<{ id: st
       setUser(savedUser);
     }
   }, []);
+
+  // Fetch specific tour data from API
+  useEffect(() => {
+    const fetchTour = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // First check if id is a documentId (string) or numeric ID
+        if (isNaN(parseInt(id))) {
+          // Try to get tour by documentId
+          try {
+            const apiTour = await ToursService.getTourByDocumentId(id);
+            const transformedTour = transformApiTourToLocal(apiTour);
+            setDestination(transformedTour);
+            console.log('✅ Tour loaded from API by documentId:', transformedTour);
+            return;
+          } catch (docIdError) {
+            console.log('⚠️ Tour documentId not found:', id);
+          }
+        } else {
+          // Try to get specific tour by numeric ID
+          try {
+            const apiTour = await ToursService.getTourById(parseInt(id));
+            const transformedTour = transformApiTourToLocal(apiTour);
+            setDestination(transformedTour);
+            console.log('✅ Tour loaded from API by ID:', transformedTour);
+            return;
+          } catch (idError) {
+            console.log('⚠️ Tour ID not found, will try documentId approach...');
+          }
+        }
+        
+        // Fallback: Get all tours and find by ID, then fetch full details by documentId
+        const allTours = await ToursService.getAllTours();
+        const tourMatch = allTours.find(tour => tour.id === parseInt(id));
+        
+        if (tourMatch && tourMatch.documentId) {
+          // Fetch full tour details using documentId to get all populated fields
+          try {
+            const fullApiTour = await ToursService.getTourByDocumentId(tourMatch.documentId);
+            const transformedTour = transformApiTourToLocal(fullApiTour);
+            setDestination(transformedTour);
+            console.log('✅ Full tour details loaded by documentId:', transformedTour);
+          } catch (docIdError) {
+            console.log('⚠️ DocumentId fetch failed, using basic tour data:', tourMatch);
+            const transformedTour = transformApiTourToLocal(tourMatch);
+            setDestination(transformedTour);
+          }
+        } else {
+          throw new Error(`Tour with ID ${id} not found`);
+        }
+        
+      } catch (error) {
+        console.error('❌ Failed to fetch tour:', error);
+        setError('Failed to load tour details. Using offline data.');
+        
+        // Fallback to static data
+        const fallbackTour = fallbackDestinations.find(d => d.id === parseInt(id));
+        if (fallbackTour) {
+          setDestination(fallbackTour);
+          console.log('⚠️ Using fallback destination:', fallbackTour);
+        } else {
+          setDestination(fallbackDestinations[0]); // Use first fallback
+          console.log('⚠️ Using first fallback destination');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTour();
+  }, [id]);
+
+  // Fetch related tours
+  useEffect(() => {
+    const fetchRelatedTours = async () => {
+      try {
+        const allTours = await ToursService.getAllTours();
+        // Transform all tours and filter out current tour
+        const availableTours = allTours
+          .map(transformApiTourToLocal)
+          .filter(tour => tour.documentId !== destination?.documentId && tour.id !== destination?.id);
+        
+        // Shuffle array using Fisher-Yates algorithm for better randomization
+        const shuffledTours = [...availableTours];
+        for (let i = shuffledTours.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledTours[i], shuffledTours[j]] = [shuffledTours[j], shuffledTours[i]];
+        }
+        
+        // Take first 3 from shuffled array
+        const transformedTours = shuffledTours.slice(0, 3);
+        setRelatedTours(transformedTours);
+      } catch (error) {
+        console.error('Error fetching related tours:', error);
+      }
+    };
+
+    // Only fetch related tours if we have the current destination loaded
+    if (destination) {
+      fetchRelatedTours();
+    }
+  }, [destination]);
 
   // Google OAuth functions
   useEffect(() => {
@@ -997,6 +1109,54 @@ Please confirm availability and provide payment details. Thank you!`;
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showShareMenu]);
   
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            {/* Header skeleton */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-10 h-10 bg-gray-300 rounded-lg"></div>
+              <div className="h-6 bg-gray-300 rounded w-32"></div>
+            </div>
+            
+            {/* Hero section skeleton */}
+            <div className="w-full h-96 bg-gray-300 rounded-lg mb-8"></div>
+            
+            {/* Content skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="h-8 bg-gray-300 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-300 rounded w-full"></div>
+                <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+                <div className="space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="border rounded-lg p-4">
+                      <div className="h-6 bg-gray-300 rounded w-1/2 mb-2"></div>
+                      <div className="h-4 bg-gray-300 rounded w-full"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="border rounded-lg p-6">
+                  <div className="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-300 rounded w-full"></div>
+                    <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+                    <div className="h-10 bg-green-300 rounded w-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state (destination not found)
   if (!destination) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -1104,6 +1264,20 @@ Please confirm availability and provide payment details. Thank you!`;
       </header>
 
       <main>
+        {/* Error Message */}
+        {error && (
+          <div className="container mx-auto px-4 pt-6">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium">{error}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Title Section */}
         <div className="container mx-auto px-4 py-6 md:py-8">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
@@ -1347,28 +1521,60 @@ Please confirm availability and provide payment details. Thank you!`;
               {!collapsedSections.additionalInfo && (
                 <CardContent>
                   <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold mb-2">Important Information</h4>
-                      <ul className="space-y-2 text-sm text-muted-foreground">
-                        <li>• Minimum age requirement: 12 years old</li>
-                        <li>• Weather dependent activities - alternative indoor options available</li>
-                        <li>• Professional photography service available for additional cost</li>
-                        <li>• Vegetarian and dietary restrictions can be accommodated</li>
-                        <li>• Free cancellation up to 24 hours before the tour</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Accessibility</h4>
-                      <p className="text-sm text-muted-foreground">
-                        This tour involves walking on uneven surfaces. Please contact us to discuss specific accessibility needs.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Languages</h4>
-                      <p className="text-sm text-muted-foreground">
-                        English, Indonesian, and Japanese speaking guides available
-                      </p>
-                    </div>
+                    {destination?.additional_information && destination.additional_information.length > 0 ? (
+                      destination.additional_information.map((section, sectionIndex) => {
+                        // Handle different types of content sections
+                        if (section.type === 'paragraph' && section.children) {
+                          return (
+                            <div key={sectionIndex} className="text-sm">
+                              <p>
+                                {section.children.map((child, childIndex) => {
+                                  if (child.type === 'text') {
+                                    return (
+                                      <span 
+                                        key={childIndex} 
+                                        className={`${child.bold ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}
+                                      >
+                                        {child.text}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })}
+                              </p>
+                            </div>
+                          );
+                        }
+                        
+                        // Handle list sections (if any)
+                        if (section.type === 'list' && section.children) {
+                          return (
+                            <ul key={sectionIndex} className="space-y-1 text-sm text-muted-foreground ml-4">
+                              {section.children.map((listItem, listIndex) => (
+                                <li key={listIndex} className="list-disc">
+                                  {listItem.children?.map((child, childIndex) => (
+                                    <span key={childIndex}>{child.text}</span>
+                                  )).join(' ')}
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        }
+                        
+                        return null;
+                      })
+                    ) : (
+                      <div>
+                        <h4 className="font-semibold mb-2">Important Information</h4>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>• Minimum age requirement: 12 years old</li>
+                          <li>• Weather dependent activities - alternative indoor options available</li>
+                          <li>• Professional photography service available for additional cost</li>
+                          <li>• Vegetarian and dietary restrictions can be accommodated</li>
+                          <li>• Free cancellation up to 24 hours before the tour</li>
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               )}
@@ -1381,10 +1587,13 @@ Please confirm availability and provide payment details. Thank you!`;
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-green-600" />
-                      4-Day Itinerary
+                      {destination?.itenary && destination.itenary.length > 0 
+                        ? `${destination.itenary.length}-Day Itinerary`
+                        : 'Tour Itinerary'
+                      }
                     </CardTitle>
                     <CardDescription>
-                      Complete schedule for your luxury Bali experience
+                      Complete schedule for your {destination?.name || 'tour'} experience
                     </CardDescription>
                   </div>
                   <Button
@@ -1404,46 +1613,59 @@ Please confirm availability and provide payment details. Thank you!`;
               {!collapsedSections.schedule && (
                 <CardContent>
                 <div className="space-y-6">
-                  {destination.tourSchedule.map((daySchedule) => (
-                    <div key={daySchedule.day} className="border-l-2 border-green-200 pl-6 relative">
-                      <div className="absolute -left-2 top-0 w-4 h-4 bg-green-600 rounded-full"></div>
-                      <div className="mb-4">
-                        <h3 className="text-lg font-semibold text-green-600">
-                          Day {daySchedule.day}: {daySchedule.title}
-                        </h3>
+                  {destination?.itenary && destination.itenary.length > 0 ? (
+                    destination.itenary.map((daySchedule, index) => (
+                      <div key={daySchedule.id} className="border-l-2 border-green-200 pl-6 relative">
+                        <div className="absolute -left-2 top-0 w-4 h-4 bg-green-600 rounded-full"></div>
+                        <div className="mb-4">
+                          <h3 className="text-lg font-semibold text-green-600">
+                            {daySchedule.itenary_caption}
+                          </h3>
+                        </div>
                       </div>
-                      <div className="space-y-3">
-                        {daySchedule.activities.map((activity, activityIndex) => (
-                          <div key={activityIndex} className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <div className="flex items-center gap-2 text-sm text-green-600 font-mono min-w-0">
-                              <Clock className="w-4 h-4 flex-shrink-0" />
-                              <span className="font-semibold">{activity.time}</span>
+                    ))
+                  ) : (
+                    destination?.tourSchedule?.map((daySchedule) => (
+                      <div key={daySchedule.day} className="border-l-2 border-green-200 pl-6 relative">
+                        <div className="absolute -left-2 top-0 w-4 h-4 bg-green-600 rounded-full"></div>
+                        <div className="mb-4">
+                          <h3 className="text-lg font-semibold text-green-600">
+                            Day {daySchedule.day}: {daySchedule.title}
+                          </h3>
+                        </div>
+                        <div className="space-y-3">
+                          {daySchedule.activities.map((activity, activityIndex) => (
+                            <div key={activityIndex} className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                              <div className="flex items-center gap-2 text-sm text-green-600 font-mono min-w-0">
+                                <Clock className="w-4 h-4 flex-shrink-0" />
+                                <span className="font-semibold">{activity.time}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-foreground">{activity.activity}</p>
+                                <p className="text-sm text-muted-foreground">{activity.description}</p>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground">{activity.activity}</p>
-                              <p className="text-sm text-muted-foreground">Duration: {activity.duration}</p>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
-                <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs">!</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-green-800">Important Notes</p>
-                      <p className="text-sm text-green-700 mt-1">
-                        All activities are optional and can be customized based on your preferences. 
-                        Weather conditions may affect outdoor activities. Transportation to external 
-                        attractions is included in the package.
-                      </p>
+                {destination?.main_important_notes && (
+                  <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs">!</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-green-800">{destination.main_important_notes.caption}</p>
+                        <p className="text-sm text-green-700 mt-1">
+                          {destination.main_important_notes.description}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
                 </CardContent>
               )}
             </Card>
@@ -1469,64 +1691,77 @@ Please confirm availability and provide payment details. Thank you!`;
               </CardHeader>
               {!collapsedSections.includes && (
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <h4 className="font-semibold mb-3 text-green-600">✓ Included</h4>
-                      <ul className="space-y-2">
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-green-600 mt-0.5">•</span>
-                          <span>Professional English-speaking guide</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-green-600 mt-0.5">•</span>
-                          <span>All entrance fees and tickets</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-green-600 mt-0.5">•</span>
-                          <span>Transportation in air-conditioned vehicle</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-green-600 mt-0.5">•</span>
-                          <span>Traditional lunch and refreshments</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-green-600 mt-0.5">•</span>
-                          <span>Bottled water throughout the tour</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-green-600 mt-0.5">•</span>
-                          <span>Safety equipment when required</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-green-600 mt-0.5">•</span>
-                          <span>Insurance coverage</span>
-                        </li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-3 text-red-600">✗ Not Included</h4>
-                      <ul className="space-y-2">
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-red-600 mt-0.5">•</span>
-                          <span>Personal expenses and shopping</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-red-600 mt-0.5">•</span>
-                          <span>Tips for guide and driver</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-red-600 mt-0.5">•</span>
-                          <span>Additional meals not mentioned</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-red-600 mt-0.5">•</span>
-                          <span>Travel insurance (recommended)</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm">
-                          <span className="text-red-600 mt-0.5">•</span>
-                          <span>Hotel pickup outside designated areas</span>
-                        </li>
-                      </ul>
+                      {destination?.includes && destination.includes.length > 0 ? (
+                        destination.includes.map((section, sectionIndex) => {
+                          // Handle different types of content sections
+                          if (section.type === 'paragraph' && section.children) {
+                            return (
+                              <div key={sectionIndex} className="mb-3">
+                                <h4 className="font-semibold text-green-600">
+                                  {section.children.map((child, childIndex) => {
+                                    if (child.type === 'text') {
+                                      return (
+                                        <span 
+                                          key={childIndex} 
+                                          className={child.bold ? 'font-bold' : 'font-semibold'}
+                                        >
+                                          ✓ {child.text}
+                                        </span>
+                                      );
+                                    }
+                                    return null;
+                                  })}
+                                </h4>
+                              </div>
+                            );
+                          }
+                          
+                          // Handle list sections
+                          if (section.type === 'list' && section.children) {
+                            return (
+                              <ul key={sectionIndex} className="space-y-2 mb-4">
+                                {section.children.map((listItem, listIndex) => (
+                                  <li key={listIndex} className="flex items-start gap-2 text-sm">
+                                    <span className="text-green-600 mt-0.5">•</span>
+                                    <span>
+                                      {listItem.children?.map((child, childIndex) => (
+                                        <span 
+                                          key={childIndex}
+                                          className={child.bold ? 'font-semibold' : ''}
+                                        >
+                                          {child.text}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            );
+                          }
+                          
+                          return null;
+                        })
+                      ) : (
+                        <>
+                          <h4 className="font-semibold mb-3 text-green-600">✓ Included</h4>
+                          <ul className="space-y-2">
+                            <li className="flex items-start gap-2 text-sm">
+                              <span className="text-green-600 mt-0.5">•</span>
+                              <span>Professional English-speaking guide</span>
+                            </li>
+                            <li className="flex items-start gap-2 text-sm">
+                              <span className="text-green-600 mt-0.5">•</span>
+                              <span>All entrance fees and tickets</span>
+                            </li>
+                            <li className="flex items-start gap-2 text-sm">
+                              <span className="text-green-600 mt-0.5">•</span>
+                              <span>Transportation in air-conditioned vehicle</span>
+                            </li>
+                          </ul>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1554,64 +1789,77 @@ Please confirm availability and provide payment details. Thank you!`;
               </CardHeader>
               {!collapsedSections.whatToBring && (
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <h4 className="font-semibold mb-3 text-blue-600">Essential Items</h4>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                          <span>Comfortable walking shoes</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                          <span>Sun hat and sunglasses</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                          <span>Sunscreen (SPF 30+ recommended)</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                          <span>Light, breathable clothing</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                          <span>Valid ID/passport</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                          <span>Cash for personal expenses</span>
-                        </li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-3 text-purple-600">Recommended Items</h4>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
-                          <span>Camera or smartphone for photos</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
-                          <span>Small backpack or daypack</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
-                          <span>Insect repellent</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
-                          <span>Light rain jacket (wet season)</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
-                          <span>Power bank for devices</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <span className="w-1.5 h-1.5 bg-purple-600 rounded-full"></span>
-                          <span>Reusable water bottle</span>
-                        </li>
-                      </ul>
+                      {destination?.what_to_bring && destination.what_to_bring.length > 0 ? (
+                        destination.what_to_bring.map((section, sectionIndex) => {
+                          // Handle different types of content sections
+                          if (section.type === 'paragraph' && section.children) {
+                            return (
+                              <div key={sectionIndex} className="mb-3">
+                                <h4 className="font-semibold text-blue-600">
+                                  {section.children.map((child, childIndex) => {
+                                    if (child.type === 'text') {
+                                      return (
+                                        <span 
+                                          key={childIndex} 
+                                          className={child.bold ? 'font-bold' : 'font-semibold'}
+                                        >
+                                          {child.text}
+                                        </span>
+                                      );
+                                    }
+                                    return null;
+                                  })}
+                                </h4>
+                              </div>
+                            );
+                          }
+                          
+                          // Handle list sections
+                          if (section.type === 'list' && section.children) {
+                            return (
+                              <ul key={sectionIndex} className="space-y-2 mb-4">
+                                {section.children.map((listItem, listIndex) => (
+                                  <li key={listIndex} className="flex items-center gap-2 text-sm">
+                                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                                    <span>
+                                      {listItem.children?.map((child, childIndex) => (
+                                        <span 
+                                          key={childIndex}
+                                          className={child.bold ? 'font-semibold' : ''}
+                                        >
+                                          {child.text}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            );
+                          }
+                          
+                          return null;
+                        })
+                      ) : (
+                        <>
+                          <h4 className="font-semibold mb-3 text-blue-600">Essential Items</h4>
+                          <ul className="space-y-2">
+                            <li className="flex items-center gap-2 text-sm">
+                              <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                              <span>Comfortable walking shoes</span>
+                            </li>
+                            <li className="flex items-center gap-2 text-sm">
+                              <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                              <span>Sun hat and sunglasses</span>
+                            </li>
+                            <li className="flex items-center gap-2 text-sm">
+                              <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                              <span>Sunscreen (SPF 30+ recommended)</span>
+                            </li>
+                          </ul>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1640,42 +1888,31 @@ Please confirm availability and provide payment details. Thank you!`;
               {!collapsedSections.faq && (
                 <CardContent>
                   <div className="space-y-6">
-                    <div className="border-b border-gray-100 pb-4">
-                      <h4 className="font-semibold mb-2">What happens if it rains?</h4>
-                      <p className="text-sm text-muted-foreground">
-                        We provide covered areas and indoor alternatives. Tours continue in light rain with provided rain gear, but may be postponed in heavy storms for safety.
-                      </p>
-                    </div>
-                    <div className="border-b border-gray-100 pb-4">
-                      <h4 className="font-semibold mb-2">Can I cancel my booking?</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Yes, free cancellation is available up to 24 hours before the tour. Cancellations within 24 hours are subject to a 50% charge.
-                      </p>
-                    </div>
-                    <div className="border-b border-gray-100 pb-4">
-                      <h4 className="font-semibold mb-2">Is this tour suitable for children?</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Children 12 years and older are welcome. Children must be accompanied by adults at all times. Special rates available for children under 18.
-                      </p>
-                    </div>
-                    <div className="border-b border-gray-100 pb-4">
-                      <h4 className="font-semibold mb-2">How physically demanding is this tour?</h4>
-                      <p className="text-sm text-muted-foreground">
-                        The tour involves moderate walking on uneven surfaces. A reasonable level of fitness is recommended. Please inform us of any mobility concerns.
-                      </p>
-                    </div>
-                    <div className="border-b border-gray-100 pb-4">
-                      <h4 className="font-semibold mb-2">What should I do if I have dietary restrictions?</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Please inform us of any dietary restrictions or allergies when booking. We can accommodate most dietary needs with advance notice.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Is tipping expected?</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Tipping is appreciated but not mandatory. A general guideline is 10-15% of the tour cost for exceptional service.
-                      </p>
-                    </div>
+                    {destination?.faq_main && destination.faq_main.length > 0 ? (
+                      destination.faq_main.map((faq, index) => (
+                        <div key={faq.id} className={index < destination.faq_main.length - 1 ? "border-b border-gray-100 pb-4" : ""}>
+                          <h4 className="font-semibold mb-2">{faq.caption}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {faq.faq_desc}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div className="border-b border-gray-100 pb-4">
+                          <h4 className="font-semibold mb-2">What happens if it rains?</h4>
+                          <p className="text-sm text-muted-foreground">
+                            We provide covered areas and indoor alternatives. Tours continue in light rain with provided rain gear, but may be postponed in heavy storms for safety.
+                          </p>
+                        </div>
+                        <div className="border-b border-gray-100 pb-4">
+                          <h4 className="font-semibold mb-2">Can I cancel my booking?</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Yes, free cancellation is available up to 24 hours before the tour. Cancellations within 24 hours are subject to a 50% charge.
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               )}
@@ -1703,58 +1940,94 @@ Please confirm availability and provide payment details. Thank you!`;
               {!collapsedSections.notes && (
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-xs font-bold">!</span>
+                    {destination?.notes_main && destination.notes_main.length > 0 ? (
+                      destination.notes_main.map((note) => {
+                        const getNotesStyle = (type: string) => {
+                          switch (type) {
+                            case 'warning':
+                              return {
+                                bg: 'bg-yellow-50',
+                                border: 'border-yellow-200',
+                                iconBg: 'bg-yellow-500',
+                                textColor: 'text-yellow-800',
+                                descColor: 'text-yellow-700',
+                                icon: '!'
+                              };
+                            case 'calm':
+                              return {
+                                bg: 'bg-blue-50',
+                                border: 'border-blue-200',
+                                iconBg: 'bg-blue-500',
+                                textColor: 'text-blue-800',
+                                descColor: 'text-blue-700',
+                                icon: 'i'
+                              };
+                            case 'good':
+                              return {
+                                bg: 'bg-green-50',
+                                border: 'border-green-200',
+                                iconBg: 'bg-green-500',
+                                textColor: 'text-green-800',
+                                descColor: 'text-green-700',
+                                icon: '✓'
+                              };
+                            case 'emergency':
+                              return {
+                                bg: 'bg-red-50',
+                                border: 'border-red-200',
+                                iconBg: 'bg-red-500',
+                                textColor: 'text-red-800',
+                                descColor: 'text-red-700',
+                                icon: '⚠'
+                              };
+                            case 'destroy':
+                            default:
+                              return {
+                                bg: 'bg-gray-50',
+                                border: 'border-gray-200',
+                                iconBg: 'bg-gray-500',
+                                textColor: 'text-gray-800',
+                                descColor: 'text-gray-700',
+                                icon: '•'
+                              };
+                          }
+                        };
+                        
+                        const style = getNotesStyle(note.notes_type);
+                        
+                        return (
+                          <div key={note.id} className={`p-4 ${style.bg} rounded-lg border ${style.border}`}>
+                            <div className="flex items-start gap-3">
+                              <div className={`w-6 h-6 ${style.iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
+                                <span className="text-white text-xs font-bold">{style.icon}</span>
+                              </div>
+                              <div>
+                                <p className={`font-semibold ${style.textColor} mb-1`}>{note.title}</p>
+                                <p className={`text-sm ${style.descColor}`}>
+                                  {note.desc}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <>
+                        <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-xs font-bold">!</span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-yellow-800 mb-1">Important Safety Information</p>
+                              <p className="text-sm text-yellow-700">
+                                Please follow all safety instructions from your guide. Some activities may not be suitable for pregnant women or people with heart conditions.
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-yellow-800 mb-1">Important Safety Information</p>
-                          <p className="text-sm text-yellow-700">
-                            Please follow all safety instructions from your guide. Some activities may not be suitable for pregnant women or people with heart conditions.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-xs font-bold">i</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-blue-800 mb-1">Cultural Etiquette</p>
-                          <p className="text-sm text-blue-700">
-                            When visiting temples, please dress modestly (shoulders and knees covered). Sarongs will be provided if needed.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-xs font-bold">✓</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-green-800 mb-1">Eco-Friendly Tourism</p>
-                          <p className="text-sm text-green-700">
-                            We are committed to sustainable tourism. Please respect local customs, don&apos;t litter, and be mindful of the environment.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Phone className="w-3 h-3 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-800 mb-1">Emergency Contact</p>
-                          <p className="text-sm text-gray-700">
-                            Our 24/7 emergency hotline: +62 812-3456-7890. Save this number in your phone before the tour starts.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               )}
@@ -2052,6 +2325,96 @@ Please confirm availability and provide payment details. Thank you!`;
           </div>
         </div>
       </main>
+
+      {/* You Might Also Like Section */}
+      {relatedTours.length > 0 && (
+        <section className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">You might also like</h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Discover more amazing experiences that other travelers have loved
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {relatedTours.map((tour) => (
+                <Card key={tour.documentId || tour.id} className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 bg-white">
+                  <div className="relative">
+                    <div className="aspect-[4/3] relative overflow-hidden">
+                      <Image
+                        src={tour.image}
+                        alt={tour.name}
+                        width={400}
+                        height={300}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    {tour.category && (
+                      <Badge className="absolute top-3 left-3 bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1">
+                        {tour.category}
+                      </Badge>
+                    )}
+                  </div>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-green-600 transition-colors line-clamp-2">
+                          {tour.name}
+                        </h3>
+                        <div className="flex items-center text-gray-500 text-sm mt-1">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {tour.location}
+                        </div>
+                      </div>
+                      
+                      <p className="text-gray-600 text-sm line-clamp-2">
+                        {tour.description}
+                      </p>
+                      
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-semibold text-gray-900 ml-1">
+                              {tour.rating}
+                            </span>
+                          </div>
+                          {tour.reviews && (
+                            <span className="text-sm text-gray-500">
+                              ({tour.reviews.toLocaleString()})
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-green-600">
+                            ${tour.price}
+                          </div>
+                          <div className="text-xs text-gray-500">per person</div>
+                        </div>
+                      </div>
+                      
+                      <Link href={`/destination/${tour.documentId || tour.id}`} className="block">
+                        <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                          View Details
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            <div className="text-center mt-12">
+              <Link href="/">
+                <Button variant="outline" size="lg" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-8">
+                  View All Tours
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white">

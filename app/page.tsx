@@ -3,12 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Filter, MapPin, Star, Heart, Share2, MessageCircle, Facebook, Twitter, Instagram, Youtube, Phone, Mail, Globe, User, X } from "lucide-react";
+import { Search, Filter, MapPin, Star, Heart, Share2, MessageCircle, Facebook, Twitter, Instagram, Youtube, Phone, Mail, Globe, User, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ToursService, ApiTour, transformApiTourToLocal } from "@/services/tours";
 
 declare global {
   interface Window {
@@ -48,7 +50,8 @@ interface User {
   picture: string;
 }
 
-const destinations = [
+// Fallback destinations (used when API fails)
+const fallbackDestinations = [
   {
     id: 1,
     name: "The Ritz-Carlton, Bali",
@@ -84,42 +87,6 @@ const destinations = [
     category: "Nature Reserve",
     description: "Sacred sanctuary home to hundreds of long-tailed macaques in their natural habitat.",
     amenities: ["Guided Tours", "Walking Trails", "Gift Shop", "Educational Center"]
-  },
-  {
-    id: 4,
-    name: "Kuta Beach",
-    location: "Kuta, Bali",
-    rating: 4.2,
-    reviews: 8765,
-    price: 0,
-    image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=300&fit=crop",
-    category: "Beach",
-    description: "Popular beach destination known for surfing, golden sand, and vibrant nightlife.",
-    amenities: ["Surfing", "Beach Clubs", "Restaurants", "Shopping"]
-  },
-  {
-    id: 5,
-    name: "Tegallalang Rice Terraces",
-    location: "Ubud, Bali",
-    rating: 4.7,
-    reviews: 2156,
-    price: 10,
-    image: "https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?w=400&h=300&fit=crop",
-    category: "Cultural Site",
-    description: "Spectacular terraced rice fields offering breathtaking views and traditional Balinese agriculture.",
-    amenities: ["Photography", "Cafe", "Swing", "Walking Trails"]
-  },
-  {
-    id: 6,
-    name: "Four Seasons Resort Bali at Sayan",
-    location: "Ubud, Bali",
-    rating: 4.9,
-    reviews: 1432,
-    price: 650,
-    image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop",
-    category: "Luxury Resort",
-    description: "Jungle luxury resort surrounded by tropical rainforest with award-winning spa.",
-    amenities: ["Spa", "Infinity Pool", "Yoga", "Fine Dining"]
   }
 ];
 
@@ -128,6 +95,18 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [parallaxLoaded, setParallaxLoaded] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
+  
+  // API data state
+  const [destinations, setDestinations] = useState<any[]>([]);
+  const [filteredDestinations, setFilteredDestinations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
 
   // Google OAuth configuration
   const googleClientId = "647803137473-nu8tum4gjfg0cd8ankduhtsi53qisvp5.apps.googleusercontent.com";
@@ -178,6 +157,66 @@ export default function Home() {
       setUser(savedUser);
     }
   }, []);
+
+  // Fetch tours data from API
+  useEffect(() => {
+    const fetchTours = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const apiTours = await ToursService.getAllTours();
+        const transformedTours = apiTours.map(transformApiTourToLocal);
+        
+        setDestinations(transformedTours);
+        setFilteredDestinations(transformedTours);
+        console.log('✅ Tours loaded from API:', transformedTours.length, 'tours');
+      } catch (error) {
+        console.error('❌ Failed to fetch tours from API:', error);
+        setError('Failed to load tours. Using offline data.');
+        
+        // Fallback to static data
+        setDestinations(fallbackDestinations);
+        setFilteredDestinations(fallbackDestinations);
+        console.log('⚠️ Using fallback destinations:', fallbackDestinations.length, 'tours');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTours();
+  }, []);
+
+  // Filter logic
+  useEffect(() => {
+    let filtered = [...destinations];
+    
+    // Search filter
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(dest => 
+        dest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        dest.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        dest.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Category filter
+    if (selectedCategory && selectedCategory !== 'all') {
+      filtered = filtered.filter(dest => dest.category === selectedCategory);
+    }
+    
+    // Location filter
+    if (selectedLocation && selectedLocation !== 'all') {
+      filtered = filtered.filter(dest => dest.location.includes(selectedLocation));
+    }
+    
+    // Price range filter
+    filtered = filtered.filter(dest => 
+      dest.price >= priceRange.min && dest.price <= priceRange.max
+    );
+    
+    setFilteredDestinations(filtered);
+  }, [destinations, searchTerm, selectedCategory, selectedLocation, priceRange]);
 
   // Trigger parallax fade-in animation
   useEffect(() => {
@@ -399,6 +438,8 @@ export default function Home() {
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                     <Input 
                       placeholder="Where do you want to go?" 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 bg-white/95 backdrop-blur-md border-white/20 text-gray-900 placeholder:text-gray-600"
                     />
                   </div>
@@ -408,17 +449,75 @@ export default function Home() {
                 </div>
 
                 {/* Filters */}
-                <div className={`flex flex-wrap gap-2 justify-center transition-all duration-800 ease-out delay-1000 ${
+                <div className={`flex flex-wrap gap-4 justify-center max-w-4xl mx-auto transition-all duration-800 ease-out delay-1000 ${
                   parallaxLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                 }`}>
-                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">
-                    <Filter className="w-4 h-4 mr-2" />
-                    All Filters
-                  </Button>
-                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">Price</Button>
-                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">Rating</Button>
-                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">Distance</Button>
-                  <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20">Category</Button>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-white font-medium">Filters:</span>
+                    
+                    {/* Category Filter */}
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger className="w-[180px] bg-white/10 backdrop-blur-md border-white/30 text-white">
+                        <SelectValue placeholder="All Categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {Array.from(new Set(destinations.map(d => d.category))).map((category) => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Location Filter */}
+                    <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                      <SelectTrigger className="w-[180px] bg-white/10 backdrop-blur-md border-white/30 text-white">
+                        <SelectValue placeholder="All Locations" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Locations</SelectItem>
+                        {Array.from(new Set(destinations.map(d => d.location.split(',')[0]))).map((location) => (
+                          <SelectItem key={location} value={location}>{location}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Price Range Filter */}
+                    <Select 
+                      value={`${priceRange.min}-${priceRange.max}`} 
+                      onValueChange={(value) => {
+                        const [min, max] = value.split('-').map(Number);
+                        setPriceRange({ min, max });
+                      }}
+                    >
+                      <SelectTrigger className="w-[180px] bg-white/10 backdrop-blur-md border-white/30 text-white">
+                        <SelectValue placeholder="Any Price" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0-1000">Any Price</SelectItem>
+                        <SelectItem value="0-50">Under $50</SelectItem>
+                        <SelectItem value="50-200">$50 - $200</SelectItem>
+                        <SelectItem value="200-500">$200 - $500</SelectItem>
+                        <SelectItem value="500-1000">$500+</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Clear Filters */}
+                    {(searchTerm || selectedCategory || selectedLocation || priceRange.min > 0 || priceRange.max < 1000) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setSearchTerm('');
+                          setSelectedCategory('');
+                          setSelectedLocation('');
+                          setPriceRange({ min: 0, max: 1000 });
+                        }}
+                        className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20"
+                      >
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -505,9 +604,58 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2 text-yellow-800">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="overflow-hidden">
+                <div className="animate-pulse">
+                  <div className="w-full h-48 bg-gray-300"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                    <div className="h-3 bg-gray-300 rounded w-full"></div>
+                    <div className="flex justify-between items-center">
+                      <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+                      <div className="h-8 bg-gray-300 rounded w-1/3"></div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Results Summary */}
+        {!loading && (
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">
+                {searchTerm ? `Search results for "${searchTerm}"` : 'Popular Destinations'}
+              </h2>
+              <p className="text-muted-foreground">
+                Showing {filteredDestinations.length} of {destinations.length} destinations
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Listings Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {destinations.map((destination) => (
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredDestinations.map((destination) => (
             <Card key={destination.id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="relative">
                 <Image
@@ -583,21 +731,47 @@ export default function Home() {
                       </>
                     )}
                   </div>
-                  <Link href={`/destination/${destination.id}`}>
+                  <Link href={`/destination/${destination.documentId || destination.id}`}>
                     <Button>View Details</Button>
                   </Link>
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* Load More */}
-        <div className="text-center mt-12">
-          <Button variant="outline" size="lg">
-            Load More Results
-          </Button>
-        </div>
+        {/* No Results Message */}
+        {!loading && filteredDestinations.length === 0 && (
+          <div className="text-center py-12">
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">No destinations found</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search terms or filters to find what you&apos;re looking for.
+              </p>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('');
+                  setSelectedLocation('');
+                  setPriceRange({ min: 0, max: 1000 });
+                }}
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Load More (only show if we have results) */}
+        {!loading && filteredDestinations.length > 0 && filteredDestinations.length === destinations.length && (
+          <div className="text-center mt-12">
+            <Button variant="outline" size="lg">
+              Load More Results
+            </Button>
+          </div>
+        )}
       </main>
 
       {/* Floating WhatsApp Button */}
