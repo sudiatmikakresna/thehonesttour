@@ -253,7 +253,7 @@ const getImageUrl = (media?: StrapiMedia, category?: string, title?: string): st
   if (media?.url) {
     // If it's a relative URL, prepend the API base URL
     if (media.url.startsWith('/')) {
-      return `https://api.thehonesttour.com${media.url}`;
+      return `http://209.97.173.149:1337${media.url}`;
     }
     return media.url;
   }
