@@ -5,8 +5,7 @@ export interface FeedbackPayload {
   name: string;
   rating_star: number;
   comment: string;
-  // Note: tour_slug is not supported in current Strapi schema
-  // Will use client-side filtering by tour name or implement tour_slug field later
+  tour: number; // Tour ID for the relationship
 }
 
 export interface ApiFeedback {
@@ -15,10 +14,14 @@ export interface ApiFeedback {
   name: string;
   rating_star: number;
   comment: string;
+  tour?: {
+    id: number;
+    documentId: string;
+    title: string;
+  };
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
-  // Note: tour_slug field doesn't exist in current schema
 }
 
 export interface ApiResponse<T> {
@@ -51,38 +54,53 @@ export class FeedbackService {
     }
   }
 
-  // Get all feedback for a specific tour by slug
-  // Since tour_slug field doesn't exist yet, return all feedback for now
-  // TODO: Add tour_slug field to Strapi schema for proper filtering
-  static async getFeedbackByTourSlug(tourSlug: string): Promise<ApiFeedback[]> {
+  // Get all feedback for a specific tour by tour ID
+  static async getFeedbackByTourId(tourId: number): Promise<ApiFeedback[]> {
     try {
-      console.log(`Getting feedback for tour: ${tourSlug} (currently returns all feedback)`);
+      console.log(`Getting feedback for tour ID: ${tourId}`);
 
-      // For now, return all feedback since tour_slug field doesn't exist
-      // In the future, when tour_slug is added to schema, use:
-      // 'filters[tour_slug][$eq]': tourSlug
-      const allFeedback = await this.getAllFeedback();
-
-      // Could do client-side filtering by tour name if needed:
-      // return allFeedback.filter(feedback =>
-      //   feedback.comment.toLowerCase().includes(tourSlug.toLowerCase())
-      // );
-
-      return allFeedback;
+      const response = await apiClient.get<ApiResponse<ApiFeedback[]>>('/feedbacks', {
+        params: {
+          'filters[tour][id][$eq]': tourId,
+          'sort[0]': 'createdAt:desc',
+          populate: 'tour'
+        }
+      });
+      return response.data.data || response.data as ApiFeedback[];
     } catch (error) {
-      console.error(`Error fetching feedback for tour ${tourSlug}:`, error);
-      throw new Error(`Failed to fetch feedback for tour ${tourSlug}`);
+      console.error(`Error fetching feedback for tour ${tourId}:`, error);
+      throw new Error(`Failed to fetch feedback for tour ${tourId}`);
+    }
+  }
+
+  // Get all feedback for a specific tour by documentId
+  static async getFeedbackByTourDocumentId(tourDocumentId: string): Promise<ApiFeedback[]> {
+    try {
+      console.log(`Getting feedback for tour documentId: ${tourDocumentId}`);
+
+      const response = await apiClient.get<ApiResponse<ApiFeedback[]>>('/feedbacks', {
+        params: {
+          'filters[tour][documentId][$eq]': tourDocumentId,
+          'sort[0]': 'createdAt:desc',
+          populate: 'tour'
+        }
+      });
+      return response.data.data || response.data as ApiFeedback[];
+    } catch (error) {
+      console.error(`Error fetching feedback for tour ${tourDocumentId}:`, error);
+      throw new Error(`Failed to fetch feedback for tour ${tourDocumentId}`);
     }
   }
 
   // Submit new feedback
   static async submitFeedback(feedback: FeedbackPayload): Promise<ApiFeedback> {
     try {
-      // Build payload with only supported fields
+      // Build payload with tour relationship
       const payload = {
         name: feedback.name,
         rating_star: feedback.rating_star,
-        comment: feedback.comment
+        comment: feedback.comment,
+        tour: feedback.tour // Tour ID for the relationship
       };
 
       console.log('Submitting feedback payload:', payload);
@@ -99,14 +117,14 @@ export class FeedbackService {
     }
   }
 
-  // Get feedback statistics for a tour
-  static async getFeedbackStats(tourSlug: string): Promise<{
+  // Get feedback statistics for a tour by ID
+  static async getFeedbackStatsByTourId(tourId: number): Promise<{
     total: number;
     averageRating: number;
     ratingDistribution: { [key: number]: number };
   }> {
     try {
-      const feedbacks = await this.getFeedbackByTourSlug(tourSlug);
+      const feedbacks = await this.getFeedbackByTourId(tourId);
 
       if (feedbacks.length === 0) {
         return {
@@ -131,7 +149,48 @@ export class FeedbackService {
         ratingDistribution
       };
     } catch (error) {
-      console.error(`Error getting feedback stats for tour ${tourSlug}:`, error);
+      console.error(`Error getting feedback stats for tour ${tourId}:`, error);
+      return {
+        total: 0,
+        averageRating: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      };
+    }
+  }
+
+  // Get feedback statistics for a tour by documentId
+  static async getFeedbackStatsByTourDocumentId(tourDocumentId: string): Promise<{
+    total: number;
+    averageRating: number;
+    ratingDistribution: { [key: number]: number };
+  }> {
+    try {
+      const feedbacks = await this.getFeedbackByTourDocumentId(tourDocumentId);
+
+      if (feedbacks.length === 0) {
+        return {
+          total: 0,
+          averageRating: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+        };
+      }
+
+      const total = feedbacks.length;
+      const totalRating = feedbacks.reduce((sum, feedback) => sum + feedback.rating_star, 0);
+      const averageRating = totalRating / total;
+
+      const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      feedbacks.forEach(feedback => {
+        ratingDistribution[feedback.rating_star]++;
+      });
+
+      return {
+        total,
+        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+        ratingDistribution
+      };
+    } catch (error) {
+      console.error(`Error getting feedback stats for tour ${tourDocumentId}:`, error);
       return {
         total: 0,
         averageRating: 0,

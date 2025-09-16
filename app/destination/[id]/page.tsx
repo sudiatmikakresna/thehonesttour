@@ -1246,16 +1246,30 @@ export default function DestinationDetail({
       try {
         setLoadingComments(true);
 
-        // Get tour slug from destination
-        const tourSlug =
-          destination.slug ||
-          destination.name.toLowerCase().replace(/\s+/g, "-");
+        // Use tour ID or documentId to fetch feedback
+        let feedbacks, stats;
 
-        // Fetch feedback and stats
-        const [feedbacks, stats] = await Promise.all([
-          FeedbackService.getFeedbackByTourSlug(tourSlug),
-          FeedbackService.getFeedbackStats(tourSlug),
-        ]);
+        if (destination.documentId) {
+          // Prefer documentId if available
+          [feedbacks, stats] = await Promise.all([
+            FeedbackService.getFeedbackByTourDocumentId(destination.documentId),
+            FeedbackService.getFeedbackStatsByTourDocumentId(destination.documentId),
+          ]);
+        } else if (destination.id) {
+          // Fallback to numeric ID
+          [feedbacks, stats] = await Promise.all([
+            FeedbackService.getFeedbackByTourId(destination.id),
+            FeedbackService.getFeedbackStatsByTourId(destination.id),
+          ]);
+        } else {
+          // No valid ID available
+          feedbacks = [];
+          stats = {
+            total: 0,
+            averageRating: 0,
+            ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+          };
+        }
 
         // Transform feedback to local format
         const transformedFeedbacks = feedbacks.map(transformApiFeedbackToLocal);
@@ -1266,7 +1280,8 @@ export default function DestinationDetail({
         console.log(
           "✅ Feedback loaded from API:",
           transformedFeedbacks.length,
-          "reviews"
+          "reviews for tour",
+          destination.documentId || destination.id
         );
         console.log("✅ Feedback stats:", stats);
       } catch (error) {
@@ -1427,6 +1442,7 @@ Please confirm availability and provide payment details. Thank you!`;
         name: user.name,
         rating_star: newComment.rating,
         comment: newComment.comment.trim(),
+        tour: destination.id, // Link to the tour
       };
 
       const submittedFeedback = await FeedbackService.submitFeedback(
