@@ -4,36 +4,15 @@ import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface HeroSectionProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  selectedCategory: string;
-  setSelectedCategory: (category: string) => void;
-  selectedLocation: string;
-  setSelectedLocation: (location: string) => void;
-  priceRange: { min: number; max: number };
-  setPriceRange: (range: { min: number; max: number }) => void;
-  destinations: any[];
 }
 
 export function HeroSection({
   searchTerm,
   setSearchTerm,
-  selectedCategory,
-  setSelectedCategory,
-  selectedLocation,
-  setSelectedLocation,
-  priceRange,
-  setPriceRange,
-  destinations,
 }: HeroSectionProps) {
   const [parallaxLoaded, setParallaxLoaded] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
@@ -150,99 +129,6 @@ export function HeroSection({
               </Button>
             </div>
 
-            {/* Filters */}
-            <div
-              className={`flex flex-wrap gap-4 justify-center max-w-4xl mx-auto transition-all duration-800 ease-out delay-1000 ${
-                parallaxLoaded
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4"
-              }`}
-            >
-              <div className="flex flex-wrap gap-2 items-center">
-                <span className="text-white font-medium">Filters:</span>
-
-                {/* Category Filter */}
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                >
-                  <SelectTrigger className="w-[180px] bg-white/10 backdrop-blur-md border-white/30 text-white">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {Array.from(
-                      new Set(destinations.map((d) => d.category))
-                    ).map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Location Filter */}
-                <Select
-                  value={selectedLocation}
-                  onValueChange={setSelectedLocation}
-                >
-                  <SelectTrigger className="w-[180px] bg-white/10 backdrop-blur-md border-white/30 text-white">
-                    <SelectValue placeholder="All Locations" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
-                    {Array.from(
-                      new Set(destinations.map((d) => d.location.split(",")[0]))
-                    ).map((location) => (
-                      <SelectItem key={location} value={location}>
-                        {location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Price Range Filter */}
-                <Select
-                  value={`${priceRange.min}-${priceRange.max}`}
-                  onValueChange={(value) => {
-                    const [min, max] = value.split("-").map(Number);
-                    setPriceRange({ min, max });
-                  }}
-                >
-                  <SelectTrigger className="w-[180px] bg-white/10 backdrop-blur-md border-white/30 text-white">
-                    <SelectValue placeholder="Any Price" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0-1000">Any Price</SelectItem>
-                    <SelectItem value="0-50">Under $50</SelectItem>
-                    <SelectItem value="50-200">$50 - $200</SelectItem>
-                    <SelectItem value="200-500">$200 - $500</SelectItem>
-                    <SelectItem value="500-1000">$500+</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Clear Filters */}
-                {(searchTerm ||
-                  selectedCategory ||
-                  selectedLocation ||
-                  priceRange.min > 0 ||
-                  priceRange.max < 1000) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setSelectedCategory("");
-                      setSelectedLocation("");
-                      setPriceRange({ min: 0, max: 1000 });
-                    }}
-                    className="bg-white/10 backdrop-blur-md border-white/30 text-white hover:bg-white/20"
-                  >
-                    Clear All
-                  </Button>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Action Buttons */}

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DestinationCard } from "./DestinationCard";
+import { useState, useRef, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
 
 interface DestinationsGridProps {
   destinations: any[];
@@ -12,6 +14,7 @@ interface DestinationsGridProps {
   setSelectedCategory: (category: string) => void;
   setSelectedLocation: (location: string) => void;
   setPriceRange: (range: { min: number; max: number }) => void;
+  onSortChange?: (sortBy: 'none' | 'price-asc' | 'price-desc') => void;
 }
 
 export function DestinationsGrid({
@@ -24,12 +27,49 @@ export function DestinationsGrid({
   setSelectedCategory,
   setSelectedLocation,
   setPriceRange,
+  onSortChange,
 }: DestinationsGridProps) {
+  const [displayCount, setDisplayCount] = useState(6);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [sortBy, setSortBy] = useState<'none' | 'price-asc' | 'price-desc'>('none');
+  const sortButtonRef = useRef<HTMLButtonElement>(null);
+
   const clearAllFilters = () => {
     setSearchTerm("");
     setSelectedCategory("");
     setSelectedLocation("");
     setPriceRange({ min: 0, max: 1000 });
+    setDisplayCount(6);
+  };
+
+  const loadMore = () => {
+    setDisplayCount(prev => prev + 3);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortButtonRef.current && !sortButtonRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Use filteredDestinations directly since sorting is now handled by parent
+  const displayedDestinations = filteredDestinations.slice(0, displayCount);
+
+  const handleSortSelect = (sortOption: 'none' | 'price-asc' | 'price-desc') => {
+    setSortBy(sortOption);
+    setShowSortDropdown(false);
+    // Notify parent component about sort change
+    if (onSortChange) {
+      onSortChange(sortOption);
+    }
   };
 
   return (
@@ -43,12 +83,50 @@ export function DestinationsGrid({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            Sort by
-          </Button>
-          <Button variant="outline" size="sm">
-            Map view
-          </Button>
+          <div className="relative">
+            <Button
+              ref={sortButtonRef}
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              className="flex items-center gap-1"
+            >
+              Sort by
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+
+            {/* Sort Dropdown */}
+            {showSortDropdown && (
+              <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[160px]">
+                <div className="py-1">
+                  <button
+                    onClick={() => handleSortSelect('none')}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                      sortBy === 'none' ? 'bg-gray-50 font-medium' : ''
+                    }`}
+                  >
+                    Default
+                  </button>
+                  <button
+                    onClick={() => handleSortSelect('price-asc')}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                      sortBy === 'price-asc' ? 'bg-gray-50 font-medium' : ''
+                    }`}
+                  >
+                    Price: Low to High
+                  </button>
+                  <button
+                    onClick={() => handleSortSelect('price-desc')}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                      sortBy === 'price-desc' ? 'bg-gray-50 font-medium' : ''
+                    }`}
+                  >
+                    Price: High to Low
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -100,7 +178,7 @@ export function DestinationsGrid({
                 : "Popular Destinations"}
             </h2>
             <p className="text-muted-foreground">
-              Showing {filteredDestinations.length} of {destinations.length}{" "}
+              Showing {displayedDestinations.length} of {filteredDestinations.length}{" "}
               destinations
             </p>
           </div>
@@ -110,14 +188,14 @@ export function DestinationsGrid({
       {/* Listings Grid */}
       {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDestinations.map((destination) => (
+          {displayedDestinations.map((destination) => (
             <DestinationCard key={destination.id} destination={destination} />
           ))}
         </div>
       )}
 
       {/* No Results Message */}
-      {!loading && filteredDestinations.length === 0 && (
+      {!loading && displayedDestinations.length === 0 && (
         <div className="text-center py-12">
           <div className="space-y-4">
             <h3 className="text-xl font-semibold">No destinations found</h3>
@@ -134,10 +212,10 @@ export function DestinationsGrid({
 
       {/* Load More (only show if we have results) */}
       {!loading &&
-        filteredDestinations.length > 0 &&
-        filteredDestinations.length === destinations.length && (
+        displayedDestinations.length > 0 &&
+        displayCount < filteredDestinations.length && (
           <div className="text-center mt-12">
-            <Button variant="outline" size="lg">
+            <Button variant="outline" size="lg" onClick={loadMore}>
               Load More Results
             </Button>
           </div>

@@ -9,7 +9,6 @@ import {
 } from "@/services/tours";
 import { Header } from "@/components/home/Header";
 import { HeroSection } from "@/components/home/HeroSection";
-import { WhyChooseSection } from "@/components/home/WhyChooseSection";
 import { DestinationsGrid } from "@/components/home/DestinationsGrid";
 import { LoginModal } from "@/components/home/LoginModal";
 import { WhatsAppButton } from "@/components/home/WhatsAppButton";
@@ -121,6 +120,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
+  const [sortBy, setSortBy] = useState<'none' | 'price-asc' | 'price-desc'>('none');
 
   // Google OAuth configuration
   const googleClientId =
@@ -176,44 +176,54 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch tours data from API
-  useEffect(() => {
-    const fetchTours = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  // Fetch tours data from API with sorting
+  const fetchTours = async (sortOption?: 'none' | 'price-asc' | 'price-desc') => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const apiTours = await ToursService.getAllTours();
-        const transformedTours = apiTours.map(transformApiTourToLocal);
-
-        setDestinations(transformedTours);
-        setFilteredDestinations(transformedTours);
-        console.log(
-          "✅ Tours loaded from API:",
-          transformedTours.length,
-          "tours"
-        );
-      } catch (error) {
-        console.error("❌ Failed to fetch tours from API:", error);
-        setError("Failed to load tours. Using offline data.");
-
-        // Fallback to static data
-        setDestinations(fallbackDestinations);
-        setFilteredDestinations(fallbackDestinations);
-        console.log(
-          "⚠️ Using fallback destinations:",
-          fallbackDestinations.length,
-          "tours"
-        );
-      } finally {
-        setLoading(false);
+      // Convert UI sort option to Strapi format
+      let strapiSort: 'price:asc' | 'price:desc' | null = null;
+      if (sortOption === 'price-asc') {
+        strapiSort = 'price:asc';
+      } else if (sortOption === 'price-desc') {
+        strapiSort = 'price:desc';
       }
-    };
 
+      const apiTours = await ToursService.getAllTours(strapiSort);
+      const transformedTours = apiTours.map(transformApiTourToLocal);
+
+      setDestinations(transformedTours);
+      setFilteredDestinations(transformedTours);
+      console.log(
+        "✅ Tours loaded from API:",
+        transformedTours.length,
+        "tours",
+        sortOption ? `sorted by ${sortOption}` : ""
+      );
+    } catch (error) {
+      console.error("❌ Failed to fetch tours from API:", error);
+      setError("Failed to load tours. Using offline data.");
+
+      // Fallback to static data
+      setDestinations(fallbackDestinations);
+      setFilteredDestinations(fallbackDestinations);
+      console.log(
+        "⚠️ Using fallback destinations:",
+        fallbackDestinations.length,
+        "tours"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
     fetchTours();
   }, []);
 
-  // Filter logic
+  // Filter logic (sorting is now handled by API)
   useEffect(() => {
     let filtered = [...destinations];
 
@@ -252,6 +262,12 @@ export default function Home() {
     selectedLocation,
     priceRange,
   ]);
+
+  // Handle sort change from DestinationsGrid - refetch data with sorting
+  const handleSortChange = (newSortBy: 'none' | 'price-asc' | 'price-desc') => {
+    setSortBy(newSortBy);
+    fetchTours(newSortBy); // Refetch with new sorting
+  };
 
   useEffect(() => {
     // Load Google OAuth script
@@ -389,20 +405,9 @@ export default function Home() {
       <HeroSection
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        selectedLocation={selectedLocation}
-        setSelectedLocation={setSelectedLocation}
-        priceRange={priceRange}
-        setPriceRange={setPriceRange}
-        destinations={destinations}
       />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Why Choose The Honest Tour Section */}
-        <WhyChooseSection />
-
-        <Separator className="mb-8" />
 
         {/* Destinations Grid */}
         <DestinationsGrid
@@ -415,6 +420,7 @@ export default function Home() {
           setSelectedCategory={setSelectedCategory}
           setSelectedLocation={setSelectedLocation}
           setPriceRange={setPriceRange}
+          onSortChange={handleSortChange}
         />
       </main>
 

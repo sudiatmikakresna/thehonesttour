@@ -126,8 +126,30 @@ export interface ApiResponse<T> {
 
 // Tours API Service
 export class ToursService {
-  // Get all tours
-  static async getAllTours(): Promise<ApiTour[]> {
+  // Get all tours with optional sorting
+  static async getAllTours(sortBy?: 'price:asc' | 'price:desc' | null): Promise<ApiTour[]> {
+    try {
+      const params: any = {
+        populate: '*'
+      };
+
+      // Add sorting parameter if provided
+      if (sortBy) {
+        params.sort = sortBy;
+      }
+
+      const response = await apiClient.get<ApiResponse<ApiTour[]>>('/tours', {
+        params
+      });
+      return response.data.data || response.data as ApiTour[];
+    } catch (error) {
+      console.error('Error fetching tours:', error);
+      throw new Error('Failed to fetch tours data');
+    }
+  }
+
+  // Get all tours (original method for backward compatibility)
+  static async getAllToursOriginal(): Promise<ApiTour[]> {
     try {
       const response = await apiClient.get<ApiResponse<ApiTour[]>>('/tours', {
         params: {
@@ -168,6 +190,26 @@ export class ToursService {
     } catch (error) {
       console.error(`Error fetching tour ${documentId}:`, error);
       throw new Error(`Failed to fetch tour with documentId ${documentId}`);
+    }
+  }
+
+  // Get single tour by slug
+  static async getTourBySlug(slug: string): Promise<ApiTour> {
+    try {
+      const response = await apiClient.get<ApiResponse<ApiTour[]>>('/tours', {
+        params: {
+          'filters[slug][$eq]': slug,
+          populate: '*'
+        }
+      });
+      const tours = response.data.data || response.data as ApiTour[];
+      if (tours.length === 0) {
+        throw new Error(`No tour found with slug: ${slug}`);
+      }
+      return tours[0];
+    } catch (error) {
+      console.error(`Error fetching tour by slug ${slug}:`, error);
+      throw new Error(`Failed to fetch tour with slug ${slug}`);
     }
   }
 
@@ -334,7 +376,7 @@ export const transformApiTourToLocal = (apiTour: ApiTour) => {
     fullDescription: apiTour.description,
     amenities: amenities.length > 0 ? amenities.slice(0, 6) : ['Professional Guide', 'Transportation', 'Entrance Fees'],
     contact: {
-      phone: '+62 812 3456 7890',
+      phone: '+62 82236969768',
       email: 'info@thehonesttour.com'
     },
     hours: '8:00 AM - 6:00 PM',
