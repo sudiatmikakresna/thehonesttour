@@ -18,7 +18,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <h3 className="text-2xl font-bold text-green-400">TheHonestTour</h3>
+            <h3 className="text-2xl font-bold text-green-400">
+              Bali Honest Tour
+            </h3>
             <p className="text-gray-300 text-sm leading-relaxed">
               Discover amazing destinations around the world with our curated
               travel experiences. Your journey to unforgettable memories starts
@@ -163,13 +165,7 @@ export function Footer() {
               <div className="flex items-center space-x-3">
                 <Mail className="w-4 h-4 text-green-400 flex-shrink-0" />
                 <span className="text-gray-300 text-sm">
-                  info@thehonesttour.com
-                </span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Globe className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span className="text-gray-300 text-sm">
-                  www.thehonesttour.com
+                  info@balihonesttour.com
                 </span>
               </div>
             </div>
@@ -190,9 +186,9 @@ export function Footer() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 md:w-64 px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-green-400 focus:outline-none"
+                className="flex-1 md:w-64 h-10 px-4 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-green-400 focus:outline-none"
               />
-              <Button className="bg-green-600 hover:bg-green-700 px-6">
+              <Button className="h-10 bg-green-600 hover:bg-green-700 px-6">
                 Subscribe
               </Button>
             </div>
@@ -202,7 +198,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-400 text-sm">
-            © 2024 TheHonestTour. All rights reserved.
+            © 2024 Bali Honest Tour. All rights reserved.
           </p>
           <div className="flex space-x-6 text-sm">
             <a

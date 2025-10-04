@@ -377,7 +377,7 @@ export const transformApiTourToLocal = (apiTour: ApiTour) => {
     amenities: amenities.length > 0 ? amenities.slice(0, 6) : ['Professional Guide', 'Transportation', 'Entrance Fees'],
     contact: {
       phone: '+62 82236969768',
-      email: 'info@thehonesttour.com'
+      email: 'info@balihonesttour.com'
     },
     hours: '8:00 AM - 6:00 PM',
     tourSchedule: [

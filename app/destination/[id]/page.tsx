@@ -48,6 +48,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Footer } from "@/components/home/Footer";
+import { RelatedTourCard } from "@/components/home/RelatedTourCard";
 import { Separator } from "@/components/ui/separator";
 import { ToursService, transformApiTourToLocal } from "@/services/tours";
 import {
@@ -1618,10 +1620,6 @@ Please confirm availability and provide payment details. Thank you!`;
               </h1>
             </div>
             <div className="flex gap-1 md:gap-2 flex-shrink-0">
-              <Button variant="outline" size="sm" className="p-2 md:px-3">
-                <Heart className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Save</span>
-              </Button>
               <div className="relative">
                 <Button
                   variant="outline"
@@ -2898,15 +2896,6 @@ Please confirm availability and provide payment details. Thank you!`;
                                 <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
                                   {comment.comment}
                                 </p>
-                                <div className="flex items-center gap-4">
-                                  <button
-                                    onClick={() => handleHelpful(comment.id)}
-                                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-green-600 transition-colors"
-                                  >
-                                    <Heart className="w-4 h-4" />
-                                    Helpful ({comment.helpful})
-                                  </button>
-                                </div>
                               </div>
                             </div>
                           </div>
@@ -2925,13 +2914,6 @@ Please confirm availability and provide payment details. Thank you!`;
                       )}
                     </div>
                   )}
-
-                  {/* Load More Button - Only show if there are comments and not loading */}
-                  {!loadingComments && comments.length > 0 && (
-                    <div className="mt-8 text-center">
-                      <Button variant="outline">Load More Reviews</Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </div>
@@ -2945,7 +2927,9 @@ Please confirm availability and provide payment details. Thank you!`;
                     <span>Book Your Tour</span>
                     <div className="flex items-center gap-1 text-sm">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      {destination.rating}
+                      {feedbackStats.averageRating > 0
+                        ? feedbackStats.averageRating
+                        : "No rating"}
                     </div>
                   </CardTitle>
                 </CardHeader>
@@ -3134,77 +3118,7 @@ Please confirm availability and provide payment details. Thank you!`;
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {relatedTours.map((tour) => (
-                <Card
-                  key={tour.documentId || tour.id}
-                  className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 bg-white"
-                >
-                  <div className="relative">
-                    <div className="aspect-[4/3] relative overflow-hidden">
-                      <Image
-                        src={tour.image}
-                        alt={tour.name}
-                        width={400}
-                        height={300}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    {tour.category && (
-                      <Badge className="absolute top-3 left-3 bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1">
-                        {tour.category}
-                      </Badge>
-                    )}
-                  </div>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-green-600 transition-colors line-clamp-2">
-                          {tour.name}
-                        </h3>
-                        <div className="flex items-center text-gray-500 text-sm mt-1">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {tour.location}
-                        </div>
-                      </div>
-
-                      <p className="text-gray-600 text-sm line-clamp-2">
-                        {tour.description}
-                      </p>
-
-                      <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-semibold text-gray-900 ml-1">
-                              {tour.rating}
-                            </span>
-                          </div>
-                          {tour.reviews && (
-                            <span className="text-sm text-gray-500">
-                              ({tour.reviews.toLocaleString()})
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-green-600">
-                            ${tour.price}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            per person
-                          </div>
-                        </div>
-                      </div>
-
-                      <Link
-                        href={`/destination/${tour.documentId || tour.id}`}
-                        className="block"
-                      >
-                        <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                          View Details
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
+                <RelatedTourCard key={tour.documentId || tour.id} tour={tour} />
               ))}
             </div>
 
@@ -3224,222 +3138,7 @@ Please confirm availability and provide payment details. Thank you!`;
       )}
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Company Info */}
-            <div className="space-y-4">
-              <h3 className="text-2xl font-bold text-green-400">
-                The honest Tour
-              </h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                Discover amazing destinations around the world with our curated
-                travel experiences. Your journey to unforgettable memories
-                starts here.
-              </p>
-              <div className="flex space-x-4">
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-green-400 transition-colors"
-                >
-                  <Facebook className="w-5 h-5" />
-                </a>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-green-400 transition-colors"
-                >
-                  <Twitter className="w-5 h-5" />
-                </a>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-green-400 transition-colors"
-                >
-                  <Instagram className="w-5 h-5" />
-                </a>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-green-400 transition-colors"
-                >
-                  <Youtube className="w-5 h-5" />
-                </a>
-              </div>
-            </div>
-
-            {/* Quick Links */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-semibold">Quick Links</h4>
-              <ul className="space-y-2">
-                <li>
-                  <Link
-                    href="/"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    About Us
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    Destinations
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    Tours & Packages
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    Contact
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Services */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-semibold">Services</h4>
-              <ul className="space-y-2">
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    Hotel Booking
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    Flight Reservations
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    Tour Packages
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    Travel Insurance
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    24/7 Support
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Contact Info */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-semibold">Contact Info</h4>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  <span className="text-gray-300 text-sm">
-                    123 Travel Street, Adventure City, AC 12345
-                  </span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Phone className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  <span className="text-gray-300 text-sm">+62 82236969768</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  <span className="text-gray-300 text-sm">
-                    info@travelguide.com
-                  </span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Globe className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  <span className="text-gray-300 text-sm">
-                    www.travelguide.com
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Newsletter Signup */}
-          <div className="mt-12 pt-8 border-t border-gray-800">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="text-center md:text-left">
-                <h4 className="text-lg font-semibold mb-2">Stay Updated</h4>
-                <p className="text-gray-300 text-sm">
-                  Subscribe to our newsletter for the latest travel deals and
-                  destinations.
-                </p>
-              </div>
-              <div className="flex w-full md:w-auto gap-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 md:w-64 px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-green-400 focus:outline-none"
-                />
-                <Button className="bg-green-600 hover:bg-green-700 px-6">
-                  Subscribe
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-400 text-sm">
-              © 2024 The honest Tour. All rights reserved.
-            </p>
-            <div className="flex space-x-6 text-sm">
-              <a
-                href="#"
-                className="text-gray-400 hover:text-green-400 transition-colors"
-              >
-                Privacy Policy
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-green-400 transition-colors"
-              >
-                Terms of Service
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-green-400 transition-colors"
-              >
-                Cookie Policy
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Floating WhatsApp Button */}
       <div className="fixed bottom-6 right-6 z-50">

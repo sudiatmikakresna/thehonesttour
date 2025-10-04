@@ -19,7 +19,7 @@ export function Header({ user, openLoginModal, logout }: HeaderProps) {
     <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-green-600">TheHonestTour</h1>
+          <h1 className="text-2xl font-bold text-green-600">Bali Honest Tour</h1>
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">

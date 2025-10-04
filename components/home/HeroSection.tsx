@@ -10,12 +10,16 @@ interface HeroSectionProps {
   setSearchTerm: (term: string) => void;
 }
 
-export function HeroSection({
-  searchTerm,
-  setSearchTerm,
-}: HeroSectionProps) {
+export function HeroSection({ searchTerm, setSearchTerm }: HeroSectionProps) {
   const [parallaxLoaded, setParallaxLoaded] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
+
+  const scrollToPopularDestinations = () => {
+    const element = document.getElementById("popular-destinations");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   // Trigger parallax fade-in animation
   useEffect(() => {
@@ -113,22 +117,21 @@ export function HeroSection({
               }`}
             >
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
                 <Input
                   placeholder="Where do you want to go?"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/95 backdrop-blur-md border-white/20 text-gray-900 placeholder:text-gray-600"
+                  className="h-11 pl-9 flex items-center bg-white/95 backdrop-blur-md border-white/20 text-gray-900 placeholder:text-gray-600"
                 />
               </div>
               <Button
                 size="lg"
-                className="px-8 bg-green-600 hover:bg-green-700 text-white"
+                className="h-11 px-8 bg-green-600 hover:bg-green-700 text-white"
               >
                 Search
               </Button>
             </div>
-
           </div>
 
           {/* Action Buttons */}
@@ -142,6 +145,7 @@ export function HeroSection({
             <Button
               size="lg"
               className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+              onClick={scrollToPopularDestinations}
             >
               Explore Tours
             </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -12,19 +12,6 @@ interface ImageCarouselProps {
 export function ImageCarousel({ images, alt }: ImageCarouselProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-
-  // Auto-slide functionality
-  useEffect(() => {
-    if (images.length <= 1 || isHovered) return;
-
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) =>
-        prevIndex === images.length - 1 ? 0 : prevIndex + 1
-      );
-    }, 3000); // Change image every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [images.length, isHovered]);
 
   const nextImage = (e: React.MouseEvent) => {
     e.preventDefault();
