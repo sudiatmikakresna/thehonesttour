@@ -1,8 +1,12 @@
 import axios from 'axios';
 
-// API Configuration
-const API_BASE_URL = 'http://209.97.173.149:1337/api';
-const API_TOKEN = 'f84ab428034ccbe4a176bd8d75bfbdd07cd5327ea2681a3740b0448ad44cb3dba49bb89aafefb383b0345cba68a175cd263767346fcc2fe4712460d107a6aa96ffb6a43a08f2c636d463a58e5bbbba2a8c252bef104d3151cb20e460bcabd24d77b211cefcd83b3e53b73a9d8685fe1815f464a00ef2baa26637afff59070925';
+// API Configuration from environment variables
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://209.97.173.149:1337/api';
+const API_TOKEN = process.env.STRAPI_API_TOKEN || '';
+
+if (!process.env.STRAPI_API_TOKEN) {
+  console.warn('Warning: STRAPI_API_TOKEN environment variable is not set');
+}
 
 // Create Axios instance
 const apiClient = axios.create({

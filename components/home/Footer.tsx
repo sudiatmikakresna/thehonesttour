@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import {
   Facebook,
   Twitter,
@@ -8,10 +11,60 @@ import {
   Mail,
   Globe,
   MapPin,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Footer() {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate email
+    if (!email || !email.includes("@")) {
+      setMessage({ type: "error", text: "Please enter a valid email address" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
+      // Call our API route instead of EmailOctopus directly (to avoid CORS issues)
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Successfully subscribed! Check your email." });
+        setEmail("");
+
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setMessage(null);
+        }, 5000);
+      } else {
+        setMessage({ type: "error", text: data.error || "Failed to subscribe. Please try again." });
+      }
+    } catch (error) {
+      console.error("Subscription error:", error);
+      setMessage({ type: "error", text: "Network error. Please try again later." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12">
@@ -182,15 +235,43 @@ export function Footer() {
                 destinations.
               </p>
             </div>
-            <div className="flex w-full md:w-auto gap-2">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 md:w-64 h-10 px-4 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-green-400 focus:outline-none"
-              />
-              <Button className="h-10 bg-green-600 hover:bg-green-700 px-6">
-                Subscribe
-              </Button>
+            <div className="w-full md:w-auto">
+              <form onSubmit={handleSubscribe} className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
+                  className="flex-1 md:w-64 h-10 px-4 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-green-400 focus:outline-none disabled:opacity-50"
+                />
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-10 bg-green-600 hover:bg-green-700 px-6 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Subscribing...
+                    </>
+                  ) : (
+                    "Subscribe"
+                  )}
+                </Button>
+              </form>
+              {message && (
+                <div className={`mt-2 text-sm flex items-center gap-2 ${
+                  message.type === "success" ? "text-green-400" : "text-red-400"
+                }`}>
+                  {message.type === "success" ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <X className="w-4 h-4" />
+                  )}
+                  {message.text}
+                </div>
+              )}
             </div>
           </div>
         </div>

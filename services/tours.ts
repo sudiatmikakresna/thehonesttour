@@ -295,7 +295,8 @@ const getImageUrl = (media?: StrapiMedia, category?: string, title?: string): st
   if (media?.url) {
     // If it's a relative URL, prepend the API base URL
     if (media.url.startsWith('/')) {
-      return `http://209.97.173.149:1337${media.url}`;
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://209.97.173.149:1337';
+      return `${baseUrl}${media.url}`;
     }
     return media.url;
   }
