@@ -94,11 +94,11 @@ export function RelatedTourCard({ tour }: RelatedTourCardProps) {
                 <span className="text-sm font-semibold text-gray-900 ml-1">
                   {feedbackStats.averageRating > 0
                     ? feedbackStats.averageRating
-                    : "No rating"}
+                    : "0"}
                 </span>
               </div>
               <span className="text-sm text-gray-500">
-                ({feedbackStats.total.toLocaleString()} reviews)
+                ({feedbackStats.total.toLocaleString()})
               </span>
             </div>
             <div className="text-right">

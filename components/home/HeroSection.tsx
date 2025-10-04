@@ -128,6 +128,7 @@ export function HeroSection({ searchTerm, setSearchTerm }: HeroSectionProps) {
               <Button
                 size="lg"
                 className="h-11 px-8 bg-green-600 hover:bg-green-700 text-white"
+                onClick={scrollToPopularDestinations}
               >
                 Search
               </Button>

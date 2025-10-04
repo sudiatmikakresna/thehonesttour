@@ -184,11 +184,11 @@ export function DestinationCard({ destination }: DestinationCardProps) {
               <span className="font-semibold">
                 {feedbackStats.averageRating > 0
                   ? feedbackStats.averageRating
-                  : "No rating"}
+                  : "0"}
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              ({feedbackStats.total.toLocaleString()} reviews)
+              ({feedbackStats.total.toLocaleString()})
             </p>
           </div>
         </div>

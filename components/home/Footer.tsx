@@ -218,7 +218,7 @@ export function Footer() {
               <div className="flex items-center space-x-3">
                 <Mail className="w-4 h-4 text-green-400 flex-shrink-0" />
                 <span className="text-gray-300 text-sm">
-                  info@balihonesttour.com
+                  info@thehonesttour.com
                 </span>
               </div>
             </div>
@@ -279,7 +279,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-400 text-sm">
-            © 2024 Bali Honest Tour. All rights reserved.
+            © 2025 Bali Honest Tour. All rights reserved.
           </p>
           <div className="flex space-x-6 text-sm">
             <a

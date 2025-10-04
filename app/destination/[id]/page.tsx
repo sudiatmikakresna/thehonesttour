@@ -1742,10 +1742,10 @@ Please confirm availability and provide payment details. Thank you!`;
                   <span className="font-semibold text-sm md:text-base">
                     {feedbackStats.averageRating > 0
                       ? feedbackStats.averageRating
-                      : "No rating"}
+                      : "0"}
                   </span>
                   <span className="text-sm md:text-base">
-                    ({feedbackStats.total.toLocaleString()} reviews)
+                    ({feedbackStats.total.toLocaleString()})
                   </span>
                 </div>
                 <Badge className="bg-green-600 hover:bg-green-700 self-start">
@@ -2929,7 +2929,7 @@ Please confirm availability and provide payment details. Thank you!`;
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                       {feedbackStats.averageRating > 0
                         ? feedbackStats.averageRating
-                        : "No rating"}
+                        : "0"}
                     </div>
                   </CardTitle>
                 </CardHeader>
