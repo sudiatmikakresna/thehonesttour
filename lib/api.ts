@@ -2,10 +2,10 @@ import axios from 'axios';
 
 // API Configuration from environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://209.97.173.149:1337/api';
-const API_TOKEN = process.env.STRAPI_API_TOKEN || '';
+const API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN || '';
 
-if (!process.env.STRAPI_API_TOKEN) {
-  console.warn('Warning: STRAPI_API_TOKEN environment variable is not set');
+if (!process.env.NEXT_PUBLIC_STRAPI_API_TOKEN) {
+  console.warn('Warning: NEXT_PUBLIC_STRAPI_API_TOKEN environment variable is not set');
 }
 
 // Create Axios instance
