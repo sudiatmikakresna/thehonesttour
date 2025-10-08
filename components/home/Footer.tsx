@@ -131,37 +131,14 @@ export function Footer() {
                   Home
                 </Link>
               </li>
+
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/"
                   className="text-gray-300 hover:text-green-400 transition-colors text-sm"
                 >
-                  About Us
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                >
-                  Destinations
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                >
-                  Tours & Packages
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                >
-                  Contact
-                </a>
+                  Tour and Packages
+                </Link>
               </li>
             </ul>
           </div>
