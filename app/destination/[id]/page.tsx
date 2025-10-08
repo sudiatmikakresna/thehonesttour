@@ -952,6 +952,9 @@ export default function DestinationDetail({
   // State for related tours
   const [relatedTours, setRelatedTours] = useState<any[]>([]);
 
+  // State for timeline data
+  const [timelineData, setTimelineData] = useState<any[]>([]);
+
   // Google OAuth configuration
   const googleClientId =
     "647803137473-nu8tum4gjfg0cd8ankduhtsi53qisvp5.apps.googleusercontent.com";
@@ -1202,6 +1205,37 @@ export default function DestinationDetail({
     fetchTour();
   }, [id]);
 
+  // Fetch timeline data separately with nested populate
+  useEffect(() => {
+    const fetchTimelineData = async () => {
+      if (!destination?.documentId) return;
+
+      try {
+        const response = await fetch(
+          `https://api.thehonesttour.com/api/tours/${destination.documentId}?populate%5Bitenary_slot%5D%5Bpopulate%5D=*`,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_STRAPI_API_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.data?.itenary_slot) {
+            setTimelineData(data.data.itenary_slot);
+            console.log("✅ Timeline data loaded:", data.data.itenary_slot);
+          }
+        }
+      } catch (error) {
+        console.error("❌ Failed to fetch timeline data:", error);
+      }
+    };
+
+    fetchTimelineData();
+  }, [destination?.documentId]);
+
   // Fetch related tours
   useEffect(() => {
     const fetchRelatedTours = async () => {
@@ -1255,7 +1289,9 @@ export default function DestinationDetail({
           // Prefer documentId if available
           [feedbacks, stats] = await Promise.all([
             FeedbackService.getFeedbackByTourDocumentId(destination.documentId),
-            FeedbackService.getFeedbackStatsByTourDocumentId(destination.documentId),
+            FeedbackService.getFeedbackStatsByTourDocumentId(
+              destination.documentId
+            ),
           ]);
         } else if (destination.id) {
           // Fallback to numeric ID
@@ -1269,7 +1305,7 @@ export default function DestinationDetail({
           stats = {
             total: 0,
             averageRating: 0,
-            ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+            ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
           };
         }
 
@@ -2141,7 +2177,53 @@ Please confirm availability and provide payment details. Thank you!`;
                 {!collapsedSections.schedule && (
                   <CardContent>
                     <div className="space-y-6">
-                      {destination?.itenary && destination.itenary.length > 0
+                      {timelineData && timelineData.length > 0
+                        ? timelineData.map((daySchedule, index) => (
+                            <div
+                              key={index}
+                              className="border-l-2 border-green-200 pl-6 relative"
+                            >
+                              <div className="absolute -left-2 top-0 w-4 h-4 bg-green-600 rounded-full"></div>
+                              <div className="mb-4">
+                                <h3 className="text-lg font-semibold text-green-600">
+                                  {daySchedule.day}: {daySchedule.desc_itenary}
+                                </h3>
+                              </div>
+                              {/* Show time list if available */}
+                              {daySchedule.itenary_timelist &&
+                                daySchedule.itenary_timelist.length > 0 && (
+                                  <div className="space-y-3">
+                                    {daySchedule.itenary_timelist.map(
+                                      (timeItem, timeIndex) => (
+                                        <div
+                                          key={timeIndex}
+                                          className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                                        >
+                                          <div className="flex items-center gap-2 text-sm text-green-600 font-mono min-w-0">
+                                            <Clock className="w-4 h-4 flex-shrink-0" />
+                                            <span className="font-semibold">
+                                              {timeItem.time}
+                                            </span>
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-foreground">
+                                              {timeItem.desc}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                              Duration: {timeItem.duration} hour
+                                              {timeItem.duration !== 1
+                                                ? "s"
+                                                : ""}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          ))
+                        : destination?.itenary && destination.itenary.length > 0
                         ? destination.itenary.map((daySchedule, index) => (
                             <div
                               key={daySchedule.id}
