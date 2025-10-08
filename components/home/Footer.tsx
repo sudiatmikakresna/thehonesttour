@@ -20,7 +20,10 @@ import { Button } from "@/components/ui/button";
 export function Footer() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +50,10 @@ export function Footer() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ type: "success", text: "Successfully subscribed! Check your email." });
+        setMessage({
+          type: "success",
+          text: "Successfully subscribed! Check your email.",
+        });
         setEmail("");
 
         // Clear success message after 5 seconds
@@ -55,11 +61,17 @@ export function Footer() {
           setMessage(null);
         }, 5000);
       } else {
-        setMessage({ type: "error", text: data.error || "Failed to subscribe. Please try again." });
+        setMessage({
+          type: "error",
+          text: data.error || "Failed to subscribe. Please try again.",
+        });
       }
     } catch (error) {
       console.error("Subscription error:", error);
-      setMessage({ type: "error", text: "Network error. Please try again later." });
+      setMessage({
+        type: "error",
+        text: "Network error. Please try again later.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -208,7 +220,7 @@ export function Footer() {
               <div className="flex items-center space-x-3">
                 <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
                 <span className="text-gray-300 text-sm">
-                  123 Travel Street, Adventure City, AC 12345
+                  Jalan padma 134 penatih Denpasar Timur, Bali.
                 </span>
               </div>
               <div className="flex items-center space-x-3">
@@ -261,9 +273,13 @@ export function Footer() {
                 </Button>
               </form>
               {message && (
-                <div className={`mt-2 text-sm flex items-center gap-2 ${
-                  message.type === "success" ? "text-green-400" : "text-red-400"
-                }`}>
+                <div
+                  className={`mt-2 text-sm flex items-center gap-2 ${
+                    message.type === "success"
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
                   {message.type === "success" ? (
                     <Check className="w-4 h-4" />
                   ) : (
