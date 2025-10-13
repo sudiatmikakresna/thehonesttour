@@ -13,6 +13,7 @@ import { DestinationsGrid } from "@/components/home/DestinationsGrid";
 import { LoginModal } from "@/components/home/LoginModal";
 import { WhatsAppButton } from "@/components/home/WhatsAppButton";
 import { Footer } from "@/components/home/Footer";
+import { FeedbackSlider } from "@/components/feedback/FeedbackSlider";
 
 declare global {
   interface Window {
@@ -423,6 +424,12 @@ export default function Home() {
           onSortChange={handleSortChange}
         />
       </main>
+
+      {/* Feedback Slider */}
+      <FeedbackSlider
+        title="What Our Travelers Say"
+        subtitle="Real experiences from real travelers around the world"
+      />
 
       {/* Floating WhatsApp Button */}
       <WhatsAppButton />

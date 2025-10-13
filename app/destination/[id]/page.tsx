@@ -38,6 +38,11 @@ import {
   Check,
   User,
   Loader2,
+  Info,
+  CheckCircle,
+  Package,
+  HelpCircle,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +56,7 @@ import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/home/Footer";
 import { RelatedTourCard } from "@/components/home/RelatedTourCard";
 import { Separator } from "@/components/ui/separator";
+import { FeedbackSlider } from "@/components/feedback/FeedbackSlider";
 import { ToursService, transformApiTourToLocal } from "@/services/tours";
 import {
   FeedbackService,
@@ -1965,7 +1971,10 @@ Please confirm availability and provide payment details. Thank you!`;
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Tour Details</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Info className="w-5 h-5 text-green-600" />
+                      Tour Details
+                    </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1986,44 +1995,6 @@ Please confirm availability and provide payment details. Thank you!`;
                       <p className="text-muted-foreground leading-relaxed">
                         {destination.fullDescription}
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-green-600" />
-                            Duration
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            4 days, 3 nights
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <h4 className="font-semibold flex items-center gap-2">
-                            <Users className="w-4 h-4 text-green-600" />
-                            Group Size
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Maximum 12 people
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <h4 className="font-semibold flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-green-600" />
-                            Meeting Point
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {destination.location}
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <h4 className="font-semibold flex items-center gap-2">
-                            <Star className="w-4 h-4 text-green-600" />
-                            Difficulty Level
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Easy to Moderate
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   </CardContent>
                 )}
@@ -2033,7 +2004,10 @@ Please confirm availability and provide payment details. Thank you!`;
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Additional Information</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-green-600" />
+                      Additional Information
+                    </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -2301,7 +2275,10 @@ Please confirm availability and provide payment details. Thank you!`;
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Includes</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      Includes
+                    </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -2429,7 +2406,10 @@ Please confirm availability and provide payment details. Thank you!`;
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>What to Bring</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="w-5 h-5 text-green-600" />
+                      What to Bring
+                    </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -2555,7 +2535,10 @@ Please confirm availability and provide payment details. Thank you!`;
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>FAQ</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <HelpCircle className="w-5 h-5 text-green-600" />
+                      FAQ
+                    </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -2626,7 +2609,10 @@ Please confirm availability and provide payment details. Thank you!`;
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Notes</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-green-600" />
+                      Notes
+                    </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -3219,6 +3205,14 @@ Please confirm availability and provide payment details. Thank you!`;
         </section>
       )}
 
+      {/* Feedback Slider */}
+      <FeedbackSlider
+        tourDocumentId={destination?.documentId}
+        tourId={destination?.id}
+        title="What Our Travelers Say"
+        subtitle="Real experiences from real travelers who have explored this destination"
+      />
+
       {/* Footer */}
       <Footer />
 
@@ -3398,52 +3392,6 @@ Please confirm availability and provide payment details. Thank you!`;
                       Continue with Google
                     </span>
                   </button>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">
-                      For development testing
-                    </span>
-                  </div>
-                </div>
-
-                {/* Mock Login for Development */}
-                <div className="space-y-4">
-                  <Button
-                    onClick={() => {
-                      // Mock user data for development
-                      const mockUser = {
-                        name: "John Doe",
-                        email: "john.doe@example.com",
-                        picture:
-                          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-                      };
-                      setUser(mockUser);
-                      saveAuthState(mockUser); // Save to localStorage
-                      setShowLoginModal(false);
-                    }}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    Mock Login (Development)
-                  </Button>
-
-                  <div className="text-xs text-gray-500 text-center">
-                    This creates a test user session for development purposes
-                  </div>
-                </div>
-
-                <div className="text-center text-sm text-gray-500">
-                  Don&apos;t have an account?{" "}
-                  <a
-                    href="#"
-                    className="text-green-600 hover:text-green-700 font-medium"
-                  >
-                    Sign up
-                  </a>
                 </div>
               </div>
             </div>

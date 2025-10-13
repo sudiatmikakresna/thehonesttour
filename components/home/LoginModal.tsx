@@ -79,52 +79,6 @@ export function LoginModal({
                 </span>
               </button>
             </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  For development testing
-                </span>
-              </div>
-            </div>
-
-            {/* Mock Login for Development */}
-            <div className="space-y-4">
-              <Button
-                onClick={() => {
-                  // Mock user data for development
-                  const mockUser = {
-                    name: "John Doe",
-                    email: "john.doe@example.com",
-                    picture:
-                      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-                  };
-                  setUser(mockUser);
-                  saveAuthState(mockUser); // Save to localStorage
-                  setShowLoginModal(false);
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                Mock Login (Development)
-              </Button>
-
-              <div className="text-xs text-gray-500 text-center">
-                This creates a test user session for development purposes
-              </div>
-            </div>
-
-            <div className="text-center text-sm text-gray-500">
-              Don&apos;t have an account?{" "}
-              <a
-                href="#"
-                className="text-green-600 hover:text-green-700 font-medium"
-              >
-                Sign up
-              </a>
-            </div>
           </div>
         </div>
       </div>
