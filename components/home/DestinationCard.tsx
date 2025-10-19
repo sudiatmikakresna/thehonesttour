@@ -41,6 +41,26 @@ export function DestinationCard({ destination }: DestinationCardProps) {
     ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
   });
 
+  // Helper function to truncate description to max 2 sentences
+  const truncateDescription = (text: string): string => {
+    if (!text) return '';
+
+    // Split by sentence-ending punctuation (., !, ?)
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+
+    if (sentences.length === 0) {
+      // If no sentence endings found, truncate at word boundary
+      return text.length > 120 ? text.substring(0, 120).trim() + '...' : text;
+    }
+
+    if (sentences.length <= 2) {
+      return text;
+    }
+
+    // Return first 2 sentences with ellipsis
+    return sentences.slice(0, 2).join('').trim() + '...';
+  };
+
   // Fetch feedback stats from database
   useEffect(() => {
     const fetchFeedbackStats = async () => {
@@ -196,7 +216,7 @@ export function DestinationCard({ destination }: DestinationCardProps) {
 
       <CardContent className="pt-0">
         <CardDescription className="mb-4">
-          {destination.description}
+          {truncateDescription(destination.description)}
         </CardDescription>
 
         <div className="flex flex-wrap gap-1 mb-4">
