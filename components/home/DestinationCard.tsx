@@ -41,24 +41,19 @@ export function DestinationCard({ destination }: DestinationCardProps) {
     ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
   });
 
-  // Helper function to truncate description to max 2 sentences
-  const truncateDescription = (text: string): string => {
+  // Helper function to truncate description to max character count
+  const truncateDescription = (text: string, maxChars: number = 120): string => {
     if (!text) return '';
 
-    // Split by sentence-ending punctuation (., !, ?)
-    const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-
-    if (sentences.length === 0) {
-      // If no sentence endings found, truncate at word boundary
-      return text.length > 120 ? text.substring(0, 120).trim() + '...' : text;
-    }
-
-    if (sentences.length <= 2) {
+    if (text.length <= maxChars) {
       return text;
     }
 
-    // Return first 2 sentences with ellipsis
-    return sentences.slice(0, 2).join('').trim() + '...';
+    // Truncate at the last complete word before maxChars
+    const truncated = text.substring(0, maxChars);
+    const lastSpace = truncated.lastIndexOf(' ');
+
+    return (lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated).trim() + '...';
   };
 
   // Fetch feedback stats from database
