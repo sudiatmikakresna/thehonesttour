@@ -270,10 +270,10 @@ export function FeedbackSlider({
                 src="https://www.instagram.com/bali_honest_tour/embed"
                 width="100%"
                 height="500"
-                frameBorder="0"
+                style={{ border: 0 }}
                 scrolling="no"
-                allowTransparency={true}
                 className="rounded-lg"
+                title="Instagram Feed"
               ></iframe>
             </div>
           </div>

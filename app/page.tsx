@@ -232,9 +232,9 @@ export default function Home() {
     if (searchTerm.trim()) {
       filtered = filtered.filter(
         (dest) =>
-          dest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          dest.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          dest.description.toLowerCase().includes(searchTerm.toLowerCase())
+          (dest.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (dest.location?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (dest.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     }
 
@@ -246,7 +246,7 @@ export default function Home() {
     // Location filter
     if (selectedLocation && selectedLocation !== "all") {
       filtered = filtered.filter((dest) =>
-        dest.location.includes(selectedLocation)
+        (dest.location || '').includes(selectedLocation)
       );
     }
 

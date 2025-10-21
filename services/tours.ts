@@ -130,7 +130,9 @@ export class ToursService {
   static async getAllTours(sortBy?: 'price:asc' | 'price:desc' | null): Promise<ApiTour[]> {
     try {
       const params: any = {
-        populate: '*'
+        populate: '*',
+        'pagination[pageSize]': 100, // Request up to 100 items per page (increase if you have more posts)
+        'pagination[page]': 1
       };
 
       // Add sorting parameter if provided
@@ -349,8 +351,8 @@ export const transformApiTourToLocal = (apiTour: ApiTour) => {
 
   return {
     id: apiTour.id,
-    name: apiTour.title,
-    location: apiTour.location,
+    name: apiTour.title || 'Untitled Tour',
+    location: apiTour.location || 'Bali, Indonesia',
     rating: rating,
     reviewCount: reviewCount,
     reviews: reviewCount,
@@ -373,8 +375,8 @@ export const transformApiTourToLocal = (apiTour: ApiTour) => {
       return [getImageUrl(apiTour.featured_image, category, apiTour.title)];
     })(),
     category: category,
-    description: apiTour.introduction_text || apiTour.description,
-    fullDescription: apiTour.description,
+    description: apiTour.introduction_text || apiTour.description || 'Explore this amazing destination in Bali',
+    fullDescription: apiTour.description || '',
     amenities: amenities.length > 0 ? amenities.slice(0, 6) : ['Professional Guide', 'Transportation', 'Entrance Fees'],
     contact: {
       phone: '+62 82236969768',
