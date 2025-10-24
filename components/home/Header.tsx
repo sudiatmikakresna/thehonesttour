@@ -17,9 +17,22 @@ interface HeaderProps {
 export function Header({ user, openLoginModal, logout }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 shadow-sm">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-green-600">Bali Honest Tour</h1>
+          <div className="flex items-center gap-3 -ml-4">
+            <Image
+              src="/logo.png"
+              alt="Bali Honest Tour"
+              width={180}
+              height={60}
+              className="h-16 w-auto"
+              priority
+            />
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold text-[#41787D]">Bali Honest Tour</h1>
+              <p className="text-xs text-[#1F4F53]">Discover Bali with Heart and Honesty</p>
+            </div>
+          </div>
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
